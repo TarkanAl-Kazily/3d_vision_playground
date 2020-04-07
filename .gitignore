@@ -1,0 +1,9 @@
+data/
+colmap/
+*.jpg
+*.png
+
+*.swp
+__pycache__
+.ipynb_checkpoints
+*.pyc
