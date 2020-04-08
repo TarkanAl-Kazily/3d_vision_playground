@@ -10,9 +10,15 @@ import glob
 # Workspace constants
 
 # Relative directory for data (containing saved parameters, images, etc)
-DATA_DIRECTORY = "../data/"
+DATA_DIRECTORY = "../data"
 
 # Workspace utility functions
+
+def data(filename):
+    """
+    Returns a filepath for a file in the data directory
+    """
+    return os.path.join(DATA_DIRECTORY, filename)
 
 def load_image(img_name, grayscale=False):
     """
