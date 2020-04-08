@@ -1,16 +1,15 @@
 import cv2, os
 
-"""
-Takes in an mp4 video and images to a directory named after the video
-Inputs:
-    filename: the name of the video (exlude the .mp4)
-    n: save every n images - for if you do not want to save every frame
-    path_to_video: if the video is not in the home directory
-Outputs:
-    None
-"""
-
 def video_to_images(filename, n=1, path_to_video=''):
+    """
+    Takes in an mp4 video and images to a directory named after the video
+    Inputs:
+        filename: the name of the video (exlude the .mp4)
+        n: save every n images - for if you do not want to save every frame
+        path_to_video: if the video is not in the home directory
+    Outputs:
+        None
+    """
     if os.path.isdir(filename) == False:
         os.mkdir(filename)
     cap = cv2.VideoCapture(path_to_video+filename+'.mp4')
