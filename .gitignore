@@ -7,3 +7,5 @@ colmap/
 __pycache__
 .ipynb_checkpoints
 *.pyc
+*.mp4
+CapstoneDemo/
