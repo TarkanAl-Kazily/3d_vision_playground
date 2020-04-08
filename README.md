@@ -2,15 +2,30 @@
 
 ## Tarkan
 
+### Accomplished
+
+1. Created initial wireframe detection notebook, with short setup guide followed by the demo code.
+
+### Planned
+
+1. Break down the wireframe demo code into more functions
+    1. Apply a single image, but don't visualize or post process
+    2. Apply some post processing
+    1. Visualize the results
+2. Create a class to store the processed wireframe information
+    1. Graph theory it up
+    2. Create class for junction
+    1. Create class for lines
+1. Analyze the differences in output for low to high confidence edges
 
 ## Toby
 
 1. Video Parser: Complete
 2. Preliminary SfM Testing
 3. Create Interface for SfM pipeline
-  1. get_camera_poses
-  2. add_feature_points
-  3. generate_feature_record
-  3. get_3d
-  4. generate_pointcloud
-  5. view_pointcloud
+    1. get_camera_poses
+    2. add_feature_points
+    3. generate_feature_record
+    4. get_3d
+    5. generate_pointcloud
+    6. view_pointcloud
