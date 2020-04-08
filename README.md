@@ -2,6 +2,21 @@
 
 ## Tarkan
 
+### Accomplished
+
+1. Created initial wireframe detection notebook, with short setup guide followed by the demo code.
+
+### Planned
+
+1. Break down the wireframe demo code into more functions
+    1. Apply a single image, but don't visualize or post process
+    2. Apply some post processing
+    1. Visualize the results
+2. Create a class to store the processed wireframe information
+    1. Graph theory it up
+    2. Create class for junction
+    1. Create class for lines
+1. Analyze the differences in output for low to high confidence edges
 
 ## Toby
 
