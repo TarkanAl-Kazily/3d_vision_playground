@@ -18,7 +18,7 @@ def video_to_images(filename, n=1, path_to_video=''):
     img_id = 0
     while success:
         if (count % n == 0):
-            cv2.imwrite(filename+"/img_{}.png".format(img_id), img)
+            cv2.imwrite("../"+filename+"/img_{}.png".format(img_id), img)
             img_id += 1
 
         success, img = cap.read()
