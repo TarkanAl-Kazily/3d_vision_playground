@@ -24,9 +24,13 @@
 
 ## Toby
 
+### Accomplished
 1. Video Parser: Complete
-2. Preliminary SfM Testing
-3. Create Interface for SfM pipeline
+
+### Planned
+
+1. Preliminary SfM Testing
+2. Create Interface for SfM pipeline
     1. get_camera_poses
     2. add_feature_points
     3. generate_feature_record
