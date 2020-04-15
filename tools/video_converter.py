@@ -11,7 +11,20 @@ def main():
 
     video_to_images(args.filename, n=args.n, path_to_video=args.path)
 
+# Credit to https://github.com/alibugra/frame-extraction for the better frame extraction code that preserves metadata
+
 if __name__ == "__main__":
     main()
+    # ap = argparse.ArgumentParser()
+    # ap.add_argument("-i", "--input", required=True)
+    # ap.add_argument("-fname", "--filename", required=True)
+    # ap.add_argument("-f", "--fps", required=True)
+    # args = vars(ap.parse_args())
+
+    # input = args["input"]
+    # fps = args["fps"]
+
+    # f = FFMPEGFrames("../data/"+args["filename"]+"/images/")
+    # f.extract_frames(input, fps)
 
 
