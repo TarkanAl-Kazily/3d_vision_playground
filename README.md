@@ -28,8 +28,6 @@
 ### Accomplished
 1. Video Parser: Complete
 
-### Planned
-
 1. Preliminary SfM Testing
 2. Create Interface for SfM pipeline
     1. get_camera_poses
@@ -38,3 +36,6 @@
     4. get_3d
     5. generate_pointcloud
     6. view_pointcloud
+    
+### Planned
+
