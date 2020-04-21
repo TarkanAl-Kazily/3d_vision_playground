@@ -4,6 +4,8 @@
 # Declares the WireframeRecord class that stores wireframe data for processing
 #
 
+from lcnn.postprocess import postprocess
+
 class WireframeRecord():
 
     """
@@ -34,6 +36,10 @@ class WireframeRecord():
         if self.num_juncs is None:
             self.num_juncs = len(self.preds["juncs"][0].cpu().numpy())
 
+    ##########################
+    # Getter functions here
+    ##########################
+
     def lines(self):
         """
         Returns a copy of the predicted line information as points in [0, 1] x [0, 1]
@@ -51,3 +57,12 @@ class WireframeRecord():
         Returns a copy of the predicted junction information
         """
         return (self.preds["juncs"][0].cpu().numpy() / 128)[:self.num_juncs]
+
+    ##########################
+    # Utility functions here
+    ##########################
+
+    def postprocess(self, imshape):
+        diag = (imshape[0] ** 2 + imshape[1] ** 2) ** 0.5
+        # Multiply lines by image shape to get image point coordinates
+        return postprocess(self.lines() * imshape[:2], self.scores(), diag * 0.01, 0, False)

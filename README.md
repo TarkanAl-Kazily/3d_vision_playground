@@ -17,7 +17,8 @@
     1. Apply some post processing
     2. Visualize the results
 2. Create a class to store the processed wireframe information
-    1. Graph theory it up
+    1. Graph theory it up - Chose [python-igraph](https://igraph.org/python/#docs)
+       for backing graph library
     2. Create class for junction
     1. Create class for lines
 1. Analyze the differences in output for low to high confidence edges
