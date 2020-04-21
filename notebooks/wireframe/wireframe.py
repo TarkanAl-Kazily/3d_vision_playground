@@ -149,39 +149,12 @@ class Wireframe():
         if im.ndim == 2:
             im = np.repeat(im[:, :, None], 3, 2)
         im = im[:, :, :3]
-        im_resized = skimage.transform.resize(im, (512, 512)) * 255
-        image = (im_resized - M.image.mean) / M.image.stddev
-        image = torch.from_numpy(np.rollaxis(image, 2)[None].copy()).float()
-        with torch.no_grad():
-            input_dict = {
-                "image": image.to(self._device),
-                "meta": [
-                    {
-                        "junc": torch.zeros(1, 2).to(self._device),
-                        "jtyp": torch.zeros(1, dtype=torch.uint8).to(self._device),
-                        "Lpos": torch.zeros(2, 2, dtype=torch.uint8).to(self._device),
-                        "Lneg": torch.zeros(2, 2, dtype=torch.uint8).to(self._device),
-                    }
-                ],
-                "target": {
-                    "jmap": torch.zeros([1, 1, 128, 128]).to(self._device),
-                    "joff": torch.zeros([1, 1, 2, 128, 128]).to(self._device),
-                },
-                "mode": "testing",
-            }
-            H = self._model(input_dict)["preds"]
 
-        lines = H["lines"][0].cpu().numpy() / 128 * im.shape[:2]
-        scores = H["score"][0].cpu().numpy()
-        for i in range(1, len(lines)):
-            if (lines[i] == lines[0]).all():
-                lines = lines[:i]
-                scores = scores[:i]
-                break
-
+        rec = self.parse(imname)
         # postprocess lines to remove overlapped lines
         diag = (im.shape[0] ** 2 + im.shape[1] ** 2) ** 0.5
-        nlines, nscores = postprocess(lines, scores, diag * 0.01, 0, False)
+        # Multiply lines by image shape to get image point coordinates
+        nlines, nscores = postprocess(rec.lines() * im.shape[:2], rec.scores(), diag * 0.01, 0, False)
 
         for i, t in enumerate([0.94, 0.95, 0.96, 0.97, 0.98, 0.99]):
             plt.gca().set_axis_off()
