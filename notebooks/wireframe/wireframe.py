@@ -152,9 +152,7 @@ class Wireframe():
 
         rec = self.parse(imname)
         # postprocess lines to remove overlapped lines
-        diag = (im.shape[0] ** 2 + im.shape[1] ** 2) ** 0.5
-        # Multiply lines by image shape to get image point coordinates
-        nlines, nscores = postprocess(rec.lines() * im.shape[:2], rec.scores(), diag * 0.01, 0, False)
+        nlines, nscores = rec.postprocess(im.shape)
 
         for i, t in enumerate([0.94, 0.95, 0.96, 0.97, 0.98, 0.99]):
             plt.gca().set_axis_off()
