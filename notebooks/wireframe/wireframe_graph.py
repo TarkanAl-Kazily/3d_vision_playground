@@ -17,25 +17,30 @@ class WireframeGraph():
     rec -- reference to the backing wireframe record
     g -- the igraph Graph object
     disc -- the discretization factor used
+    t -- threshold level
     """
-    def __init__(self, record, name=None):
+    def __init__(self, record, threshold=0.95, name=None):
         """
         Arguments:
         record -- a wireframe record object
+        threshold -- score threshold value to add lines to graph (default 0.95)
         name -- (optional) name for graph
         """
         self.rec = record
+        self.t = threshold
         self.g = Graph()
         self.g["name"] = name if name else ""
 
         # disc specifies how many cells to consider vertices in
-        self.disc = 1000
+        self.disc = 10000
+        self.imshape = self.rec.imshape
 
         self.setup_graph()
 
     def setup_graph(self):
         # Add vertices to g
-        all_pts = self.rec.lines().reshape((self.rec.num_lines * 2, 2))
+        nlines = self.rec.lines_postprocess()
+        all_pts = nlines.reshape((len(nlines) * 2, 2))
         idxs = self.point_to_vertex(all_pts)
         # Map for lookup vertex num -> (x, y)
         idx_list = list(set(idxs))
@@ -48,8 +53,7 @@ class WireframeGraph():
 
         # Add edges to g
         edges = []
-        for i in range(self.rec.num_lines):
-            l = self.rec.lines()[i]
+        for l in nlines:
             idxs = self.point_to_vertex(l)
             edges.append((idx_map[idxs[0]], idx_map[idxs[1]]))
         self.g.add_edges(edges)
@@ -65,7 +69,7 @@ class WireframeGraph():
         idxs -- list [num_pts] of int tuples [2]
         """
         result = []
-        arr = (pts * self.disc).astype(int)
+        arr = ((pts * self.disc) / self.imshape[:2]).astype(int)
         for i, j in arr:
             result.append((i, j))
         return result

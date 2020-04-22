@@ -15,6 +15,7 @@ class WireframeRecord():
     Attributes:
     num_lines -- The number of detected and unique lines (edges)
     num_juncs -- The number of detected and unique junctions (vertices)
+    imshape -- The shape of the image that generated this record
 
     Functions:
     lines -- returns the line information with endpoints in [0,1] x [0,1]
@@ -23,11 +24,12 @@ class WireframeRecord():
     postprocess -- runs the LCNN postprocess function on the lines and scores
     """
 
-    def __init__(self, preds):
+    def __init__(self, preds, imshape):
         """
         Initialize the wireframe record with the predictions of the LCNN model
         """
         self.preds = preds
+        self.imshape = imshape
 
         self.num_lines = None
         for i in range(1, len(self.preds["lines"][0].cpu().numpy())):
@@ -74,7 +76,7 @@ class WireframeRecord():
     # Utility functions here
     ##########################
 
-    def postprocess(self, imshape):
+    def postprocess(self):
         """
         Filters the lines to remove close duplicates in the image.
 
@@ -85,6 +87,12 @@ class WireframeRecord():
         nlines -- filtered lines
         nscores -- filtered scores
         """
-        diag = (imshape[0] ** 2 + imshape[1] ** 2) ** 0.5
+        diag = (self.imshape[0] ** 2 + self.imshape[1] ** 2) ** 0.5
         # Multiply lines by image shape to get image point coordinates
-        return postprocess(self.lines() * imshape[:2], self.scores(), diag * 0.01, 0, False)
+        return postprocess(self.lines() * self.imshape[:2], self.scores(), diag * 0.01, 0, False)
+
+    def lines_postprocess(self):
+        return self.postprocess()[0]
+
+    def scores_postprocess(self):
+        return self.postprocess()[1]

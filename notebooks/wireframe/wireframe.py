@@ -140,19 +140,14 @@ class Wireframe():
             }
             H = self._model(input_dict)["preds"]
 
-        return WireframeRecord(H)
+        return WireframeRecord(H, im.shape)
         
     
     def visualize(self, imname):
         print(f"Processing {imname}")
-        im = skimage.io.imread(imname)
-        if im.ndim == 2:
-            im = np.repeat(im[:, :, None], 3, 2)
-        im = im[:, :, :3]
-
         rec = self.parse(imname)
         # postprocess lines to remove overlapped lines
-        nlines, nscores = rec.postprocess(im.shape)
+        nlines, nscores = rec.postprocess()
 
         for i, t in enumerate([0.94, 0.95, 0.96, 0.97, 0.98, 0.99]):
             plt.gca().set_axis_off()
