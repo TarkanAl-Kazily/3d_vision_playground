@@ -10,18 +10,19 @@
     2. Returns the WireframeRecord class
 2. Created WireframeRecord that wraps the prediction data
     1. The lines and points are accessible as numpy arrays indexing into the (resized) image
-
-### Planned
-
 1. Break down the wireframe demo code into more functions
     1. Apply some post processing
     2. Visualize the results
-2. Create a class to store the processed wireframe information
-    1. Graph theory it up - Chose [python-igraph](https://igraph.org/python/#docs)
-       for backing graph library
-    2. Create class for junction
-    1. Create class for lines
-1. Analyze the differences in output for low to high confidence edges
+1. WireframeGraph stores connected edges as graph form, and provides a way to get subgraphs
+    1. We can visualize these subgraphs easily using plt (implemented in plot\_graph)
+    2. Can filter based on the score threshold and number of required edges in subgraphs
+
+### Planned
+
+1. Given 2-5 closely overlapping images, give estimate feature matching the respective connected components
+    1. Use OpenCV to get feature descriptors for vertices (actual? or approximate?) in graph
+    1. For each vertex in one graph, try to match to a vertex in the other graph
+    1. Choose the highest matching set passing some threshold, even if the number of vertices/edges doesn't match
 
 ## Toby
 

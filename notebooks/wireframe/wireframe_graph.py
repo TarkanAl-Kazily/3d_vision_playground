@@ -43,7 +43,8 @@ class WireframeGraph():
         self.rec = record
         self.t = threshold
         self.g = Graph()
-        self.g["name"] = name if name else ""
+        if name:
+            self.g["name"] = name
 
         # disc specifies how many cells to consider vertices in
         self.disc = 100

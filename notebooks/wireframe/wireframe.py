@@ -169,7 +169,7 @@ class Wireframe():
             plt.show()
             plt.close()
 
-    def get_filtered_subgraphs(self, imname, desired_edges):
+    def get_filtered_subgraphs(self, imname, desired_edges, threshold=0.95):
         """
         Arguments:
         imname -- image to load
@@ -181,6 +181,6 @@ class Wireframe():
         subgraphs -- connected subgraphs in that graph
         """
         im = self.load_image(imname)
-        graph = WireframeGraph(self.parse(imname))
+        graph = WireframeGraph(self.parse(imname), threshold=threshold)
         subgraphs = [s for s in graph.connected_subgraphs() if s.ecount() > desired_edges]
         return im, graph, subgraphs
