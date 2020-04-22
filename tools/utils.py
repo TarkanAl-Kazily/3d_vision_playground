@@ -1,6 +1,6 @@
 import cv2, os, subprocess
 
-def video_to_images(filename, n=1, path_to_video=''):
+def video_to_images(inputfile, n, outputdir):
     """
     Takes in an mp4 video and images to a directory named after the video
     Inputs:
@@ -10,22 +10,24 @@ def video_to_images(filename, n=1, path_to_video=''):
     Outputs:
         None
     """
-    if os.path.isdir("../data/"+filename) == False:
-        os.mkdir("../data/"+filename)
-    if os.path.isdir("../data/"+filename+"/images/") == False:
-        os.mkdir("../data/"+filename+"/images/")
-    cap = cv2.VideoCapture(path_to_video+filename+'.mp4')
+    cap = cv2.VideoCapture(inputfile)
     success, img = cap.read()
+    if not success:
+        print("Failed to read from the capture")
+        return
+
+    print("Reading from {}".format(inputfile))
     count = 0
     img_id = 0
     while success:
         if (count % n == 0):
-            cv2.imwrite("../data/"+filename+"/images/img_{}.png".format(img_id), img)
+            output_filename = os.path.join(outputdir, "img_{}.png".format(img_id))
+            cv2.imwrite(output_filename, img)
             img_id += 1
 
         success, img = cap.read()
         count += 1
-    print("Successfully saved {} frames".format(count))
+    print("Successfully saved {} frames".format(img_id))
 
 class FFMPEGFrames:
     def __init__(self, output):
