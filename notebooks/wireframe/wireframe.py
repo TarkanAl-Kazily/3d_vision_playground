@@ -23,7 +23,7 @@ from lcnn.models.multitask_learner import MultitaskHead, MultitaskLearner
 from lcnn.postprocess import postprocess
 from lcnn.utils import recursive_to
 
-from wireframe import WireframeRecord
+from wireframe import WireframeRecord, WireframeGraph
 
 PLTOPTS = {"color": "#33FFFF", "s": 15, "edgecolors": "none", "zorder": 5}
 cmap = plt.get_cmap("jet")
@@ -168,3 +168,19 @@ class Wireframe():
             plt.imshow(im)
             plt.show()
             plt.close()
+
+    def get_filtered_subgraphs(self, imname, desired_edges):
+        """
+        Arguments:
+        imname -- image to load
+        desired_edges -- minimum number of edges in each subgraph
+
+        Returns:
+        im -- image file
+        graph -- graph of all wires detected
+        subgraphs -- connected subgraphs in that graph
+        """
+        im = self.load_image(imname)
+        graph = WireframeGraph(self.parse(imname))
+        subgraphs = [s for s in graph.connected_subgraphs() if s.ecount() > desired_edges]
+        return im, graph, subgraphs
