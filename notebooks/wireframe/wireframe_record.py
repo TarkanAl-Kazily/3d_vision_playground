@@ -76,12 +76,13 @@ class WireframeRecord():
     # Utility functions here
     ##########################
 
-    def postprocess(self):
+    def postprocess(self, threshold=0):
         """
         Filters the lines to remove close duplicates in the image.
 
         Arguments:
         imshape -- image dimensions
+        threshold -- returned lines must have greater score (default 0)
 
         Returns:
         nlines -- filtered lines
@@ -89,10 +90,5 @@ class WireframeRecord():
         """
         diag = (self.imshape[0] ** 2 + self.imshape[1] ** 2) ** 0.5
         # Multiply lines by image shape to get image point coordinates
-        return postprocess(self.lines() * self.imshape[:2], self.scores(), diag * 0.01, 0, False)
-
-    def lines_postprocess(self):
-        return self.postprocess()[0]
-
-    def scores_postprocess(self):
-        return self.postprocess()[1]
+        nlines, nscores = postprocess(self.lines() * self.imshape[:2], self.scores(), diag * 0.01, 0, False)
+        return nlines[nscores > threshold], nscores[nscores > threshold]

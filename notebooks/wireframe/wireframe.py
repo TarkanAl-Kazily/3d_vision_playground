@@ -109,15 +109,19 @@ class Wireframe():
             self.initialized = False
             
         return self.initialized
+
+    def load_image(self, imname):
+        im = skimage.io.imread(imname)
+        if im.ndim == 2:
+            im = np.repeat(im[:, :, None], 3, 2)
+        im = im[:, :, :3]
+        return im
     
     def parse(self, imname):
         """
         Returns a WireframeRecord of the predictions for the input image filename
         """
-        im = skimage.io.imread(imname)
-        if im.ndim == 2:
-            im = np.repeat(im[:, :, None], 3, 2)
-        im = im[:, :, :3]
+        im = self.load_image(imname)
         im_resized = skimage.transform.resize(im, (512, 512)) * 255
         image = (im_resized - M.image.mean) / M.image.stddev
         image = torch.from_numpy(np.rollaxis(image, 2)[None].copy()).float()
@@ -162,6 +166,5 @@ class Wireframe():
             plt.gca().xaxis.set_major_locator(plt.NullLocator())
             plt.gca().yaxis.set_major_locator(plt.NullLocator())
             plt.imshow(im)
-            plt.savefig(imname.replace(".png", f"-{t:.02f}.svg"), bbox_inches="tight")
             plt.show()
             plt.close()
