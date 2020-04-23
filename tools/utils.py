@@ -1,12 +1,13 @@
 import cv2, os, subprocess
 
-def video_to_images(inputfile, n, outputdir):
+def video_to_images(inputfile, n, outputdir, rotate=0):
     """
     Takes in an mp4 video and images to a directory named after the video
     Inputs:
         filename: the name of the video (exlude the .mp4)
         n: save every n images - for if you do not want to save every frame
         path_to_video: if the video is not in the home directory
+        rotate: number of times to rotate the image by 90 degrees
     Outputs:
         None
     """
@@ -19,9 +20,18 @@ def video_to_images(inputfile, n, outputdir):
     print("Reading from {}".format(inputfile))
     count = 0
     img_id = 0
+    rotateCode = None
+    if rotate == 1:
+        rotateCode = cv2.ROTATE_90_CLOCKWISE
+    if rotate == 2:
+        rotateCode = cv2.ROTATE_180
+    if rotate == 3:
+        rotateCode = cv2.ROTATE_90_COUNTERCLOCKWISE
     while success:
         if (count % n == 0):
             output_filename = os.path.join(outputdir, "img_{}.png".format(img_id))
+            if rotateCode:
+                img = cv2.rotate(img, rotateCode)
             cv2.imwrite(output_filename, img)
             img_id += 1
 
