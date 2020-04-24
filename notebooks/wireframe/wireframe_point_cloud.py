@@ -30,6 +30,7 @@ class WireframePointCloud():
         Optional keyword arguments:
         threshold -- line score threshold value in [0.0, 1.0]
         distance -- required distance projected 2D points need to be in line point cloud
+        color -- [r, g, b] or None, in which case color is chosen randomly for each line
         """
         self.project_dir = project_dir
         self.name = imname
@@ -42,6 +43,7 @@ class WireframePointCloud():
 
         self._threshold = kwargs.get("threshold", 0.95)
         self._2d_distance = kwargs.get("distance", 20.0)
+        self._c = kwargs.get("color", None)
 
         # The ::-1 reverses the endpoints from (y, x) to (x, y)
         self._lines = rec.postprocess(self._threshold)[0][:, :, ::-1]
@@ -74,8 +76,13 @@ class WireframePointCloud():
         Arguments:
         vertices -- vertices in the PLY file. If None, no vertex metadata is written
         edges -- edges in the PLY file. If None, no edge metadata is written
-        c -- rgb list: color of vertices and edges (default white)
+        c -- rgb list: color of vertices and edges (default white) if None, random
         """
+        if c is None:
+            c = [np.random.randint(0, 256),
+                 np.random.randint(0, 256),
+                 np.random.randint(0, 256)]
+
         do_vertices = False
         do_edges = False
         yield "ply\n"
@@ -117,7 +124,7 @@ class WireframePointCloud():
             if pt_cloud.shape[0] == 0:
                 continue
             with open(os.path.join(self._wireframe_ply_dir, "line_{}.ply".format(i)), 'w') as f:
-                text = self.write_ply(pt_cloud, None, c=[255, 0, 0])
+                text = self.write_ply(pt_cloud, None, c=self._c)
                 f.writelines(text)
 
 

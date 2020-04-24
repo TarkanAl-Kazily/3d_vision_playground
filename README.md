@@ -21,16 +21,28 @@
 1. WireframeGraph stores connected edges as graph form, and provides a way to get subgraphs
     1. We can visualize these subgraphs easily using plt (implemented in plot\_graph)
     2. Can filter based on the score threshold and number of required edges in subgraphs
-
+1. Created WireframePointCloud to generate point clouds related to wireframe features
+    1. wireframe\_run\_ply.py constructs all the wireframe point clouds for lines
+    2. Gives each one random colors to visualize in meshlab
+    3. Can merge ply files with tools/merge\_ply.py for ease of viewing
 ### Planned
 
 1. For each image, we get OpenSfM and Wireframe information. Do stuff with it.
     1. OpenSfM gives camera intrinsics, rotation and translation, and a cloud of points seen by the image.
     2. Wireframe information is a list of lines that have endpoints.
     3. If we can estimate the 3D position of the line endpoints, then we could create our own "point cloud" of just the 3D line features and visualize that. This requires:
-    4. For a point in an image, find points in the point cloud that reproject near it
-    5. Estimate the original point's depth using the points in the point cloud
-    6. Collect up all of the estimated 3D points (using depth, rotation, and translation) to write out a new ply file for visualization.
+    4. For a line in an image, find points in the point cloud that reproject near it (Done - visualized in meshlab)
+    5. Estimate the original line's 3D structure using the points in the point cloud
+    6. Collect up all of the estimated 3D lines as edges (meaning capture their endpoints as vertices) to write out a new ply file for visualization.
+1. Estimating the original line's 3D structure:
+    1. We have a point cloud representing 3D points near the line (in reality these may be terrible points)
+    2. Use RANSAC with principle component (https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d) to get a more robust line
+    3. Put line into ply file (optional: with point cloud)
+    4. Optional: Throw out outlier points from point clouds
+2. Combining lines between images:
+    1. We have a bunch of 3D lines and point clouds for each line.
+    2. If the 3D lines overlap (check <endpt, dir> for each line, if falls in [0, len] they overlap) check the direction, if close to the same merge point clouds.
+    3. With new merged point cloud generate new best fit line with RANSAC
 
 ## Toby
 
