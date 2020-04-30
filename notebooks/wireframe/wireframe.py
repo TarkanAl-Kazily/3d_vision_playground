@@ -150,6 +150,7 @@ class Wireframe():
     def visualize(self, imname):
         print(f"Processing {imname}")
         rec = self.parse(imname)
+        im = self.load_image(imname)
         # postprocess lines to remove overlapped lines
         nlines, nscores = rec.postprocess()
 

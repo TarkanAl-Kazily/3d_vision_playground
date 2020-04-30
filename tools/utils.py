@@ -21,17 +21,25 @@ def video_to_images(inputfile, n, outputdir, rotate=0):
     count = 0
     img_id = 0
     rotateCode = None
+    toby = None
     if rotate == 1:
         rotateCode = cv2.ROTATE_90_CLOCKWISE
     if rotate == 2:
         rotateCode = cv2.ROTATE_180
     if rotate == 3:
         rotateCode = cv2.ROTATE_90_COUNTERCLOCKWISE
+    if rotate == 4:
+        rotateCode = cv2.ROTATE_90_COUNTERCLOCKWISE
+        toby = cv2.ROTATE_180
+
     while success:
         if (count % n == 0):
             output_filename = os.path.join(outputdir, "img_{}.png".format(img_id))
-            if rotateCode:
+            if rotateCode and not toby:
                 img = cv2.rotate(img, rotateCode)
+            if rotateCode and toby:
+                img = cv2.rotate(img, rotateCode)
+                img = cv2.rotate(img, toby)
             cv2.imwrite(output_filename, img)
             img_id += 1
 
