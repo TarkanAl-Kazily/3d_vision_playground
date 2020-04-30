@@ -8,6 +8,7 @@ import numpy as np
 import os
 import cv2
 
+import wireframe.wireframe_ransac
 
 class WireframePointCloud():
     """
@@ -44,6 +45,10 @@ class WireframePointCloud():
         self._threshold = kwargs.get("threshold", 0.95)
         self._2d_distance = kwargs.get("distance", 20.0)
         self._c = kwargs.get("color", None)
+        self._line_ransac_iterations = kwargs.get("line_ransac_iterations", 20)
+        self._line_inlier_thresh = kwargs.get("line_inlier_thresh", 0.25)
+        self._min_line_inliers = kwargs.get("min_line_inliers", 5)
+        self._color_inliers = kwargs.get("color_inliers", False)
 
         # The ::-1 reverses the endpoints from (y, x) to (x, y)
         self._lines = rec.postprocess(self._threshold)[0][:, :, ::-1]
@@ -63,6 +68,29 @@ class WireframePointCloud():
             l_points_idx = l_points_idx[0]
             self._line_point_clouds.append(self._points[l_points_idx, :])
 
+        # Data structure for all the fitted 3d lines corresponding to each point cloud
+        # Length is number of lines
+        # Elements are numpy arrays of shape [2, 3]
+        self._fitted_3d_lines = []
+        fitter = wireframe.wireframe_ransac.Line3DRANSAC(self._line_ransac_iterations, self._line_inlier_thresh, None)
+        for cloud in self._line_point_clouds:
+            line, n_inliers = fitter.ransac(cloud)
+            if n_inliers < self._min_line_inliers:
+                line = np.array([])
+            self._fitted_3d_lines.append(line)
+
+        if self._color_inliers:
+            # Data structure for all the colors of inliers
+            self._c = []
+            for cloud, line in zip(self._line_point_clouds, self._fitted_3d_lines):
+                if line.shape[0] == 0:
+                    self._c.append(np.broadcast_to(np.array([255, 0, 0]), (cloud.shape[0], 3)))
+                    continue
+                error = fitter.get_error(cloud, line)
+                colors = np.where(np.expand_dims(error < self._line_inlier_thresh, 1), np.array([[255, 255, 255]]), np.array([[255, 0, 0]]))
+                colors = np.vstack([colors, np.broadcast_to(255, (4, 3))])
+                self._c.append(colors)
+
     def project_points(self, points):
         """
         Computes point projection
@@ -70,21 +98,23 @@ class WireframePointCloud():
         res, _ = cv2.projectPoints(points, self._R, self._T, self._K, self._distortion)
         return np.array(res)
 
-    def write_ply(self, vertices, edges, c=[255, 255, 255]):
+    def write_ply(self, vertices, edges, c=np.array([255, 255, 255])):
         """
         Outputs contents of a ply file
         Arguments:
         vertices -- vertices in the PLY file. If None, no vertex metadata is written
         edges -- edges in the PLY file. If None, no edge metadata is written
-        c -- rgb list: color of vertices and edges (default white) if None, random
+        c -- numpy array: color of vertices and edges (default white) if None, random
+             if shape is (3), use np array for all vertices and edges
+             otherwise if 2D use c[i] for v[i], c[i + n_vertices] for e[i]
         """
         if c is None:
-            c = [np.random.randint(0, 256),
-                 np.random.randint(0, 256),
-                 np.random.randint(0, 256)]
+            c = np.randint(0, high=256, size=3)
 
         do_vertices = False
         do_edges = False
+        num_vertices = 0
+        num_edges = 0
         yield "ply\n"
         yield "format ascii 1.0\n"
         if (vertices is not None) and (vertices.shape[0] > 0):
@@ -96,6 +126,7 @@ class WireframePointCloud():
             yield "property uchar red\n"
             yield "property uchar green\n"
             yield "property uchar blue\n"
+            num_vertices = vertices.shape[0]
         if (edges is not None) and (edges.shape[0] > 0):
             do_edges = True
             yield "element edge {}\n".format(edges.shape[0])
@@ -104,27 +135,36 @@ class WireframePointCloud():
             yield "property uchar red\n"
             yield "property uchar green\n"
             yield "property uchar blue\n"
+            num_edges = edges.shape[0]
         yield "end_header\n"
+
+        if len(c.shape) == 1:
+            c = np.broadcast_to(c, (num_vertices + num_edges, 3))
         
         if do_vertices:
             v_template = "{:4f} {:4f} {:4f} {} {} {}\n"
-            for x, y, z in vertices:
-                yield v_template.format(x, y, z, c[0], c[1], c[2])
+            for i, (x, y, z) in enumerate(vertices):
+                yield v_template.format(x, y, z, c[i, 0], c[i, 1], c[i, 2])
         if do_edges:
             e_template = "{} {} {} {} {}\n"
-            for u, v in edges:
-                yield e_template.format(u, v, c[0], c[1], c[2])
+            for i, (u, v) in enumerate(edges):
+                yield e_template.format(u, v, c[i + num_vertices, 0], c[i + num_vertices, 1], c[i + num_vertices, 2])
 
     def write_line_point_clouds(self):
         """
         Creates ply files for each line point cloud
         """
         os.makedirs(self._wireframe_ply_dir, exist_ok=True)
-        for i, pt_cloud in enumerate(self._line_point_clouds):
-            if pt_cloud.shape[0] == 0:
+        for i, (pt_cloud, line) in enumerate(zip(self._line_point_clouds, self._fitted_3d_lines)):
+            if pt_cloud.shape[0] == 0 and line.shape[0] == 0:
                 continue
+            vertices = pt_cloud
+            edges = None
+            if line.shape[0] == 2:
+                vertices = np.vstack((vertices, line))
+                edges = np.array([np.arange(2) + pt_cloud.shape[0]])
             with open(os.path.join(self._wireframe_ply_dir, "line_{}.ply".format(i)), 'w') as f:
-                text = self.write_ply(pt_cloud, None, c=self._c)
+                text = self.write_ply(vertices, edges, c= self._c[i] if self._color_inliers else self._c)
                 f.writelines(text)
 
 

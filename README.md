@@ -25,6 +25,12 @@
     1. wireframe\_run\_ply.py constructs all the wireframe point clouds for lines
     2. Gives each one random colors to visualize in meshlab
     3. Can merge ply files with tools/merge\_ply.py for ease of viewing
+1. Estimating the original line's 3D structure: DONE!
+    1. We have a point cloud representing 3D points near the line (in reality these may be terrible points)
+    2. Use RANSAC with principle component (https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d) to get a more robust line
+    3. Put line into ply file (optional: with point cloud)
+    4. Optional: Throw out outlier points from point clouds - instead I just change their color
+
 ### Planned
 
 1. For each image, we get OpenSfM and Wireframe information. Do stuff with it.
@@ -34,15 +40,14 @@
     4. For a line in an image, find points in the point cloud that reproject near it (Done - visualized in meshlab)
     5. Estimate the original line's 3D structure using the points in the point cloud
     6. Collect up all of the estimated 3D lines as edges (meaning capture their endpoints as vertices) to write out a new ply file for visualization.
-1. Estimating the original line's 3D structure:
-    1. We have a point cloud representing 3D points near the line (in reality these may be terrible points)
-    2. Use RANSAC with principle component (https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d) to get a more robust line
-    3. Put line into ply file (optional: with point cloud)
-    4. Optional: Throw out outlier points from point clouds
+1. Modify merge\_ply.py to optionally only do vertices or edges
 2. Combining lines between images:
     1. We have a bunch of 3D lines and point clouds for each line.
     2. If the 3D lines overlap (check <endpt, dir> for each line, if falls in [0, len] they overlap) check the direction, if close to the same merge point clouds.
     3. With new merged point cloud generate new best fit line with RANSAC
+3. Improve 3D line estimation:
+    1. Get the coimage of the line in the image to define the plane that the line must fall into
+    2. Do RANSAC with this constraint in mind by first projecting the point cloud into the plane, and performing 2D ransac fitting
 
 ## Toby
 

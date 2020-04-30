@@ -23,7 +23,8 @@ from lcnn.models.multitask_learner import MultitaskHead, MultitaskLearner
 from lcnn.postprocess import postprocess
 from lcnn.utils import recursive_to
 
-from wireframe import WireframeRecord, WireframeGraph
+import wireframe.wireframe_record
+import wireframe.wireframe_graph
 
 PLTOPTS = {"color": "#33FFFF", "s": 15, "edgecolors": "none", "zorder": 5}
 cmap = plt.get_cmap("jet")
@@ -144,7 +145,7 @@ class Wireframe():
             }
             H = self._model(input_dict)["preds"]
 
-        return WireframeRecord(H, im.shape)
+        return wireframe.wireframe_record.WireframeRecord(H, im.shape)
         
     
     def visualize(self, imname):
@@ -182,6 +183,6 @@ class Wireframe():
         subgraphs -- connected subgraphs in that graph
         """
         im = self.load_image(imname)
-        graph = WireframeGraph(self.parse(imname), threshold=threshold)
+        graph = wireframe.wireframe_graph.WireframeGraph(self.parse(imname), threshold=threshold)
         subgraphs = [s for s in graph.connected_subgraphs() if s.ecount() > desired_edges]
         return im, graph, subgraphs
