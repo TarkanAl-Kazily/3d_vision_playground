@@ -53,7 +53,6 @@ class PLYParser():
                                 # Write all the vertex lines as soon as possible
                                 out.writelines(self.parse_ply_fp(fp))
 
-            print(len(self.edges))
             self.total_edges = len(self.edges)
             out.writelines(self.edges)
 
