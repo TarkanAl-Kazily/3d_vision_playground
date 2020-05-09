@@ -4,7 +4,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Save a video frame to a series of images')
     parser.add_argument('inputfile', type=str, help='filename of input video')
-    parser.add_argument('--n', type=int, default=1, help='save every n images')
+    parser.add_argument('-n', type=int, default=1, help='save every n images')
     parser.add_argument('--outputdir', default='./', type=str, help='directory to store output files to')
     parser.add_argument('--rotate', type=int, default=0, help='rotation amount in 0-3')
 
