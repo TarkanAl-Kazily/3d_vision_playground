@@ -27,13 +27,17 @@ def main(args):
     else:
         print("w is setup successfully")
 
+    records = wireframe.project.generate_wireframe_records(args.project_directory, w, force=args.recompute)
+
+    if args.reconstruction >= 0:
+        reconstruction = [reconstruction[args.reconstruction]]
+
     for r in reconstruction:
         for imname, iminfo in r['shots'].items():
             print("Processing {}...".format(imname))
-            rec = w.parse(os.path.join(args.project_directory, "images", imname))
             wpc = wireframe.WireframePointCloud(args.project_directory,
                     imname,
-                    rec,
+                    records[imname],
                     iminfo,
                     r['cameras'],
                     line_inlier_thresh=args.l_thresh,
@@ -46,6 +50,8 @@ if __name__ == "__main__":
     parser.add_argument('project_directory', type=str, help="directory storing all OpenSfM data")
     parser.add_argument('--l_thresh', type=float, default=0.25, help="Threshold value for RANSAC line fitting")
     parser.add_argument('--color_inliers', action="store_true", help="Use a fixed coloring scheme and indicate inliers a different color")
+    parser.add_argument('--reconstruction', '-r', type=int, default=-1, help="which reconstruction to generate plys with")
+    parser.add_argument('--recompute', action="store_true", help="force recomputing wireframe records")
     args = parser.parse_args()
     main(args)
 
