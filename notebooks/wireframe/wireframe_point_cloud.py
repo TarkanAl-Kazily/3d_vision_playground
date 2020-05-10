@@ -18,29 +18,26 @@ class WireframePointCloud():
     wireframe features.
 
     Important Attributes:
-    project_dir -- full directory storing all relevant data
-    name -- original image name
-    rec -- detected wireframe record
     info -- Structure for Motion information, including a point cloud
     cam -- camera parameters from OpenSfM
+
+    _line_point_clouds -- Point clouds corresponding to detected line features
+    _fitted_3d_lines   -- Fitted 3D lines given by (start, end) corresponding to detected line features
     """
     def __init__(self, project_dir, imname, rec, iminfo, caminfo, **kwargs):
         """
-        imname, rec, iminfo, and caminfo all correspond to above attributes.
+        imname, iminfo, and caminfo all correspond to above attributes.
 
         Optional keyword arguments:
         threshold -- line score threshold value in [0.0, 1.0]
         distance -- required distance projected 2D points need to be in line point cloud
         color -- [r, g, b] or None, in which case color is chosen randomly for each line
         """
-        self.project_dir = project_dir
-        self.name = imname
-        self.rec = rec
         self.info = iminfo
         self.cam = caminfo
 
         self._wireframe_ply_dir = os.path.join(project_dir,
-                "wireframe_ply/{}.ply_dir/".format(self.name))
+                "wireframe_ply/{}.ply_dir/".format(imname))
 
         self._threshold = kwargs.get("threshold", 0.95)
         self._2d_distance = kwargs.get("distance", 20.0)
@@ -51,7 +48,7 @@ class WireframePointCloud():
         self._color_inliers = kwargs.get("color_inliers", False)
 
         # The ::-1 reverses the endpoints from (y, x) to (x, y)
-        self._lines = rec.postprocess(self._threshold)[0][:, :, ::-1]
+        initial_lines = rec.postprocess(self._threshold)[0][:, :, ::-1]
 
         self._points = np.array(self.info["vertices"])
         self._R = np.array(self.info["rotation"])
@@ -63,7 +60,7 @@ class WireframePointCloud():
         # Length is number of lines
         # Elements are numpy arrays of points
         self._line_point_clouds = []
-        for l in self._lines:
+        for l in initial_lines:
             l_points_idx, _ = get_points_near_line_2D(self._points_proj, l, dist=self._2d_distance)
             l_points_idx = l_points_idx[0]
             self._line_point_clouds.append(self._points[l_points_idx, :])
@@ -109,7 +106,7 @@ class WireframePointCloud():
              otherwise if 2D use c[i] for v[i], c[i + n_vertices] for e[i]
         """
         if c is None:
-            c = np.randint(0, high=256, size=3)
+            c = np.random.randint(0, high=256, size=3)
 
         do_vertices = False
         do_edges = False

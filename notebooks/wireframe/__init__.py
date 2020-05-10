@@ -7,3 +7,5 @@ from wireframe.wireframe_graph import WireframeGraph
 
 from wireframe.wireframe import Wireframe
 from wireframe.wireframe_point_cloud import WireframePointCloud
+
+import wireframe.project

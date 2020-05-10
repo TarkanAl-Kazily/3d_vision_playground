@@ -6,6 +6,9 @@
 
 from lcnn.postprocess import postprocess
 
+import os
+import numpy as np
+
 class WireframeRecord():
     """
     WireframeRecord
@@ -23,29 +26,36 @@ class WireframeRecord():
     juncs -- returns the junction information with endpoints in [0,1] x [0,1]
     postprocess -- runs the LCNN postprocess function on the lines and scores
     """
-
-    def __init__(self, preds, imshape):
+    def __init__(self, preds, imshape, to_cpu=True):
         """
         Initialize the wireframe record with the predictions of the LCNN model
         """
         self.preds = preds
-        self.imshape = imshape
+        self.imshape = (imshape[0], imshape[1])
+        if to_cpu:
+            self._lines = self.preds["lines"][0].cpu().numpy()
+            self._score = self.preds["score"][0].cpu().numpy()
+            self._juncs = self.preds["juncs"][0].cpu().numpy()
+        else:
+            self._lines = np.array(self.preds["lines"], copy=True)
+            self._score = np.array(self.preds["score"], copy=True)
+            self._juncs = np.array(self.preds["juncs"], copy=True)
 
         self.num_lines = None
-        for i in range(1, len(self.preds["lines"][0].cpu().numpy())):
-            if (self.preds["lines"][0].cpu().numpy()[i] == self.preds["lines"][0].cpu().numpy()[0]).all():
+        for i in range(1, len(self._lines)):
+            if (self._lines[i] == self._lines[0]).all():
                 self.num_lines = i
                 break
         if self.num_lines is None:
-            self.num_lines = len(self.preds["lines"][0].cpu().numpy())
+            self.num_lines = len(self._lines)
 
         self.num_juncs = None
-        for i in range(1, len(self.preds["juncs"][0].cpu().numpy())):
-            if (self.preds["juncs"][0].cpu().numpy()[i] == self.preds["juncs"][0].cpu().numpy()[0]).all():
+        for i in range(1, len(self._juncs)):
+            if (self._juncs[i] == self._juncs[0]).all():
                 self.num_juncs = i
                 break
         if self.num_juncs is None:
-            self.num_juncs = len(self.preds["juncs"][0].cpu().numpy())
+            self.num_juncs = len(self._juncs)
 
     ##########################
     # Getter functions here
@@ -58,19 +68,19 @@ class WireframeRecord():
         Returns:
         lines -- numpy array [num_lines, 2, 2]
         """
-        return (self.preds["lines"][0].cpu().numpy() / 128)[:self.num_lines]
+        return (self._lines / 128)[:self.num_lines]
 
     def scores(self):
         """
         Gets the predicted scores information
         """
-        return (self.preds["score"][0].cpu().numpy())[:self.num_lines]
+        return (self._score)[:self.num_lines]
 
     def juncs(self):
         """
         Gets the predicted junction information
         """
-        return (self.preds["juncs"][0].cpu().numpy() / 128)[:self.num_juncs]
+        return (self._juncs / 128)[:self.num_juncs]
 
     ##########################
     # Utility functions here
@@ -92,3 +102,30 @@ class WireframeRecord():
         # Multiply lines by image shape to get image point coordinates
         nlines, nscores = postprocess(self.lines() * self.imshape[:2], self.scores(), diag * 0.01, 0, False)
         return nlines[nscores > threshold], nscores[nscores > threshold]
+
+    def save(self, filename):
+        """
+        Saves the record in numpy format for later use loading with WireframeRecord.load
+
+        Arguments:
+        filename -- file to write. Will create directories. Overwrites destination. Appends .npz
+        """
+        directory = os.path.dirname(filename)
+        os.makedirs(directory, exist_ok=True)
+        np.savez_compressed(filename, lines=self._lines, score=self._score, juncs=self._juncs, imshape=self.imshape)
+
+    ##########################
+    # Static class functions here
+    ##########################
+
+    @staticmethod
+    def load(filename):
+        """
+        Loads a record from the filename and returs a WireframeRecord instance
+        """
+        record = None
+        with open(filename, 'rb') as f:
+            data = np.load(filename)
+            record = WireframeRecord(data, data["imshape"], to_cpu=False)
+            data.close()
+        return record
