@@ -164,6 +164,14 @@ class WireframePointCloud():
                 text = self.write_ply(vertices, edges, c= self._c[i] if self._color_inliers else self._c)
                 f.writelines(text)
 
+    def combine(self, other_wpc):
+        """
+        Adds the point cloud and 3d line information from other_wpc to this point cloud object
+
+        Arguments:
+        other_wpc -- The other WireframePointCloud to add to this object
+        """
+        raise NotImplementedError()
 
 #########################################################
 # Other utility functions
