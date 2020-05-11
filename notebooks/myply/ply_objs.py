@@ -37,24 +37,7 @@ class PLY():
         self.edges = edges if edges else []
         # list of tuples giving image num, line num
         self.edge_labels = edge_labels if (edges and edge_labels) else []
-        self.header = ["ply\n",
-                  "format ascii 1.0\n",
-                  "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
-                  "property float x\n",
-                  "property float y\n",
-                  "property float z\n",
-                  "property uchar red\n",
-                  "property uchar green\n",
-                  "property uchar blue\n",
-                  "element edge {}\n".format(len(self.edges)),
-                  "property int vertex1\n",
-                  "property int vertex2\n",
-                  "property uchar red\n",
-                  "property uchar green\n",
-                  "property uchar blue\n",
-                  "property int label1\n",
-                  "property int label2\n",
-                  "end_header\n"]
+        self.update_header()
 
     def get_parallel_lines(self, tol=0.1, min_group=10):
         all_lines = self.edges.copy()
@@ -116,6 +99,13 @@ class PLY():
         self.vertices += other.vertices
         self.edges += other.edges
         self.edge_labels += other.edge_labels
+        self.update_header()
+
+    def add_vertices(self, vertices):
+        self.vertices += vertices
+        self.update_header()
+
+    def update_header(self):
         self.header = ["ply\n",
                   "format ascii 1.0\n",
                   "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
@@ -134,6 +124,15 @@ class PLY():
                   "property int label1\n",
                   "property int label2\n",
                   "end_header\n"]
+
+    def remove_all_vertices(self):
+        self.vertices = []
+        self.update_header()
+
+    def remove_all_edges(self):
+        self.edges = []
+        self.edge_labels = []
+        self.update_header()
 
 class PLYEdge(PLY):
 

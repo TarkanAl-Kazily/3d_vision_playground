@@ -70,13 +70,24 @@ def main(args):
     w_args.color_inliers = True
     w_args.l_thresh = 0.25
     w_args.reconstruction = 0
+    w_args.score_thresh = 0.95
 
-    wpcs = wireframe_run_ply.main(w_args)
+    wpcs, records = wireframe_run_ply.main(w_args)
+    record_dict = {}
+    for r in records.values():
+        record_dict[r.imnum] = r
 
-    # list of (imname, imline, ply) objects from all wpcs
+    all_images = {}
+    # list of (imname, imnum, ply) objects from all wpcs
     all_plys = []
+    # dict from (imnum, linenum) -> ply
+    plys_by_im_line = {}
     all_initial_lines = {}
     for wpc in wpcs:
+        for imnum, imline, ply in wpc.get_plys():
+            if all_images.get(imnum, None) is None:
+                all_images[imnum] = load_image(os.path.join(args.project_directory, "images", "img_{}.png".format(imnum)))
+            plys_by_im_line[(imnum, imline)] = ply
         all_plys += wpc.get_plys()
         all_initial_lines[wpc.imnum] = wpc.initial_lines
 
@@ -100,15 +111,44 @@ def main(args):
         print("Showing matches for {}".format(fname))
         e.write(os.path.join(args.project_directory, "wireframe_ply", fname))
         matches.append(Match(e, p.edge_labels))
-        matches[-1].plot_matches(args.project_directory, all_initial_lines)
+        if args.plot:
+            matches[-1].plot_matches(args.project_directory, all_initial_lines)
 
     combined.write(os.path.join(args.project_directory, "wireframe_simplified.ply"))
-    
+
+    # Each match stores the edge e and the labels (imnum, imname) for that edge in each image
+    # Adjacencies goes from index in matches -> list of groups of matches
+    # group matches all correspond to a single intersection point
+    adjacencies = {}
+
+    for ei, m in enumerate(matches):
+        # Find all other matches incident with this one
+        adjacencies[ei] = []
+        for imnum, linenum in m.labels:
+            g = wireframe.WireframeGraph(record_dict[imnum], threshold=w_args.score_thresh)
+            intersecting_linenums = g.get_intersecting_lines(linenum)
+            for group in intersecting_linenums:
+                group_matches = []
+                if plot:
+                    g.plot_graph(g.g, all_images[imnum], highlight=[linenum])
+                    g.plot_graph(g.g, all_images[imnum], highlight=group)
+                for other_linenum in group:
+                    label = (imnum, other_linenum)
+                    for other_ei, other_m in enumerate(matches):
+                        if label in other_m.labels:
+                            group_matches.append(other_ei)
+                adjacencies[ei].append(group_matches)
+
+    # With adjacencies add a vertex that is the closest intersection point for all the adjacent edges
+    vertex_plys = []
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('project_directory', type=str, help="directory storing all OpenSfM data")
     parser.add_argument('--tol', type=float, default=0.2, help="Distance tolerance for grouping lines")
     parser.add_argument('--min_group', type=int, default=3, help="Minimum number of distance based matches for inclusion")
+    parser.add_argument('--plot', action='store_true', help="Plot matches")
     args = parser.parse_args()
     main(args)
 

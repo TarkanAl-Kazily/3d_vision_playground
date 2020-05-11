@@ -9,6 +9,8 @@ from lcnn.postprocess import postprocess
 import os
 import numpy as np
 
+import wireframe.project
+
 class WireframeRecord():
     """
     WireframeRecord
@@ -26,12 +28,13 @@ class WireframeRecord():
     juncs -- returns the junction information with endpoints in [0,1] x [0,1]
     postprocess -- runs the LCNN postprocess function on the lines and scores
     """
-    def __init__(self, preds, imshape, to_cpu=True):
+    def __init__(self, preds, imshape, imnum, to_cpu=True):
         """
         Initialize the wireframe record with the predictions of the LCNN model
         """
         self.preds = preds
         self.imshape = (imshape[0], imshape[1])
+        self.imnum = imnum
         if to_cpu:
             self._lines = self.preds["lines"][0].cpu().numpy()
             self._score = self.preds["score"][0].cpu().numpy()
@@ -123,9 +126,11 @@ class WireframeRecord():
         """
         Loads a record from the filename and returs a WireframeRecord instance
         """
+        imname = os.path.basename(filename)
+        imnum = wireframe.project.imnum_from_imname(imname)
         record = None
         with open(filename, 'rb') as f:
             data = np.load(filename)
-            record = WireframeRecord(data, data["imshape"], to_cpu=False)
+            record = WireframeRecord(data, data["imshape"], imnum, to_cpu=False)
             data.close()
         return record

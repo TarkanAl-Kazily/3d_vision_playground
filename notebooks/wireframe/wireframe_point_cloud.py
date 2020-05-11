@@ -165,17 +165,20 @@ class WireframePointCloud():
                 yield e_template.format(u, v, c[i + num_vertices, 0], c[i + num_vertices, 1], c[i + num_vertices, 2])
 
     def get_plys(self):
+        """
+        Returns a list of tuples (imname, imnum, PLY) for each line in WPC
+        """
         ret = []
         for i, (pt_cloud, line) in enumerate(zip(self._line_point_clouds, self._fitted_3d_lines)):
             if pt_cloud.shape[0] == 0 and line.shape[0] == 0:
-                ret.append((self.imname, self.initial_lines[i], myply.PLY(None, None, None)))
+                ret.append((self.imnum, i, myply.PLY(None, None, None)))
             vertices = [myply.Vertex(p[0], p[1], p[2]) for p in pt_cloud]
             edges = None
             edge_labels = None
             if line.shape[0] == 2:
                 edges = [myply.Edge(myply.Vertex(line[0, 0], line[0, 1], line[0, 2]), myply.Vertex(line[1, 0], line[1, 1], line[1, 2]))]
                 edge_labels = [(self.imnum, i)]
-            ret.append((self.imname, self.initial_lines[i], myply.PLY(vertices, edges, edge_labels)))
+            ret.append((self.imnum, i, myply.PLY(vertices, edges, edge_labels)))
         return ret
 
     def write_line_point_clouds(self):

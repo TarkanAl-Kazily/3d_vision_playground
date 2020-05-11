@@ -25,6 +25,7 @@ from lcnn.utils import recursive_to
 
 import wireframe.wireframe_record
 import wireframe.wireframe_graph
+import wireframe.project
 
 PLTOPTS = {"color": "#33FFFF", "s": 15, "edgecolors": "none", "zorder": 5}
 cmap = plt.get_cmap("jet")
@@ -145,7 +146,7 @@ class Wireframe():
             }
             H = self._model(input_dict)["preds"]
 
-        return wireframe.wireframe_record.WireframeRecord(H, im.shape)
+        return wireframe.wireframe_record.WireframeRecord(H, im.shape, wireframe.project.imnum_from_imname(imname))
         
     
     def visualize(self, imname):

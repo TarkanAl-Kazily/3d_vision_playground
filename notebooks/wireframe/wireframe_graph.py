@@ -49,6 +49,7 @@ class WireframeGraph():
         # disc specifies how many cells to consider vertices in
         self.disc = 100
         self.imshape = self.rec.imshape
+        self.imnum = self.rec.imnum
 
         self.setup_graph()
 
@@ -106,7 +107,7 @@ class WireframeGraph():
             result[i] = (np.array(v) * self.imshape[:2]) / self.disc
         return result
 
-    def plot_graph(self, graph, im):
+    def plot_graph(self, graph, im, highlight=[]):
         print("Plotting graph:\n{}\n".format(graph))
         plt.gca().set_axis_off()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
@@ -115,7 +116,7 @@ class WireframeGraph():
             s = graph.es["score"][edge.index]
             vs = [graph.vs["idx"][edge.source], graph.vs["idx"][edge.target]]
             pts = self.vertex_to_point(vs)
-            plt.plot([pts[0, 1], pts[1, 1]], [pts[0, 0], pts[1, 0]], c=c(s), linewidth=2, zorder=s)
+            plt.plot([pts[0, 1], pts[1, 1]], [pts[0, 0], pts[1, 0]], c='b' if i in highlight else 'r', linewidth=2)
             plt.scatter(pts[0, 1], pts[0, 0], **PLTOPTS)
             plt.scatter(pts[1, 1], pts[1, 0], **PLTOPTS)
         plt.gca().xaxis.set_major_locator(plt.NullLocator())
@@ -126,3 +127,62 @@ class WireframeGraph():
 
     def connected_subgraphs(self):
         return self.g.components().subgraphs()
+
+    def get_intersecting_lines(self, linenum, close=0.05):
+        edge = self.g.es[linenum]
+        line = np.array([self.g.vs["idx"][edge.source], self.g.vs["idx"][edge.target]])
+        result = []
+        points = []
+        for i, l in enumerate(self.g.es):
+            if i == linenum:
+                continue
+            other_line = np.array([self.g.vs["idx"][l.source], self.g.vs["idx"][l.target]])
+            intersect, p = intersect_2d(line, other_line)
+            if not intersect:
+                continue
+            if not points:
+                points.append[p]
+                result.append([other_line])
+            else:
+                for group, prev_p in enumerate(points):
+                    if np.linalg.norm(p - prev_p) < close:
+                        result[group].append(other_line)
+                        break
+
+        return result
+
+###############################################################
+# Utility functions
+###############################################################
+
+def intersect_2d(l1, l2):
+    """
+    Arguments:
+    l1, l2 -- numpy arrays of shape [2, 2]
+    """
+    print(l1, l2)
+    d1 = l1[1] - l1[0]
+    d2 = l2[1] - l2[0]
+
+    # See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Using_homogeneous_coordinates
+    U1 = np.array([-d1[1], d1[0], d1[1] * l1[0, 0] - d1[0] * l1[0, 1]])
+    U2 = np.array([-d2[1], d2[0], d2[1] * l2[0, 0] - d2[0] * l2[0, 1]])
+    P = np.cross(U1, U2)
+    if np.isclose(P[2], 0):
+        return False, None
+
+    p = np.array([P[0] / P[2], P[1] / P[2]])
+    print("p: {}".format(p))
+    # Check that p lies between each endpoint
+    if np.dot(p - l1[0], d1) < 0:
+        return False, None
+    if np.dot(l1[1] - p, d1) < 0:
+        return False, None
+    if np.dot(p - l2[0], d2) < 0:
+        return False, None
+    if np.dot(l2[1] - p, d2) < 0:
+        return False, None
+
+    return True, p
+
+

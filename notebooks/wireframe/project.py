@@ -52,3 +52,18 @@ def generate_wireframe_records(proj_dir, w, force=False):
                 records[imname] = rec
     print("Got {} wireframe records".format(len(records)))
     return records
+
+def imnum_from_imname(imname):
+    start = -1
+    end = -1
+    for i in range(len(imname)):
+        if imname[i].isdigit():
+            if start < 0:
+                start = i
+        else:
+            if start >= 0:
+                end = i
+                break
+    if end == -1:
+        end = len(imname)
+    return int(imname[start:end])

@@ -43,17 +43,19 @@ def main(args):
                     iminfo,
                     r['cameras'],
                     line_inlier_thresh=args.l_thresh,
-                    color_inliers=args.color_inliers)
+                    color_inliers=args.color_inliers,
+                    threshold=args.score_thresh)
             wpcs.append(wpc)
             wpc.write_line_point_clouds()
 
-    return wpcs
+    return wpcs, records
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('project_directory', type=str, help="directory storing all OpenSfM data")
     parser.add_argument('--l_thresh', type=float, default=0.25, help="Threshold value for RANSAC line fitting")
+    parser.add_argument('--score_thresh', type=float, default=0.95, help="Score threshold for wireframe detection")
     parser.add_argument('--color_inliers', action="store_true", help="Use a fixed coloring scheme and indicate inliers a different color")
     parser.add_argument('--reconstruction', '-r', type=int, default=-1, help="which reconstruction to generate plys with")
     parser.add_argument('--recompute', action="store_true", help="force recomputing wireframe records")
