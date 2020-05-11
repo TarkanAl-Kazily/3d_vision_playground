@@ -10,6 +10,8 @@ import cv2
 
 import wireframe.wireframe_ransac
 
+import myply
+
 class WireframePointCloud():
     """
     WireframePointCloud
@@ -33,6 +35,20 @@ class WireframePointCloud():
         distance -- required distance projected 2D points need to be in line point cloud
         color -- [r, g, b] or None, in which case color is chosen randomly for each line
         """
+        self.imname = imname
+        start = -1
+        end = -1
+        for i in range(len(imname)):
+            if imname[i].isdigit():
+                if start < 0:
+                    start = i
+            else:
+                if start >= 0:
+                    end = i
+                    break
+        if end == -1:
+            end = len(imname)
+        self.imnum = int(imname[start:end])
         self.info = iminfo
         self.cam = caminfo
 
@@ -49,6 +65,7 @@ class WireframePointCloud():
 
         # The ::-1 reverses the endpoints from (y, x) to (x, y)
         initial_lines = rec.postprocess(self._threshold)[0][:, :, ::-1]
+        self.initial_lines = initial_lines
 
         self._points = np.array(self.info["vertices"])
         self._R = np.array(self.info["rotation"])
@@ -146,6 +163,20 @@ class WireframePointCloud():
             e_template = "{} {} {} {} {}\n"
             for i, (u, v) in enumerate(edges):
                 yield e_template.format(u, v, c[i + num_vertices, 0], c[i + num_vertices, 1], c[i + num_vertices, 2])
+
+    def get_plys(self):
+        ret = []
+        for i, (pt_cloud, line) in enumerate(zip(self._line_point_clouds, self._fitted_3d_lines)):
+            if pt_cloud.shape[0] == 0 and line.shape[0] == 0:
+                ret.append((self.imname, self.initial_lines[i], myply.PLY(None, None, None)))
+            vertices = [myply.Vertex(p[0], p[1], p[2]) for p in pt_cloud]
+            edges = None
+            edge_labels = None
+            if line.shape[0] == 2:
+                edges = [myply.Edge(myply.Vertex(line[0, 0], line[0, 1], line[0, 2]), myply.Vertex(line[1, 0], line[1, 1], line[1, 2]))]
+                edge_labels = [(self.imnum, i)]
+            ret.append((self.imname, self.initial_lines[i], myply.PLY(vertices, edges, edge_labels)))
+        return ret
 
     def write_line_point_clouds(self):
         """

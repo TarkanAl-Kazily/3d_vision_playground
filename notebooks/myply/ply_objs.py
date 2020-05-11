@@ -32,9 +32,11 @@ class Edge():
 
 class PLY():
 
-    def __init__(self, vertices, edges):
+    def __init__(self, vertices, edges, edge_labels):
         self.vertices = vertices if vertices else []
         self.edges = edges if edges else []
+        # list of tuples giving image num, line num
+        self.edge_labels = edge_labels if (edges and edge_labels) else []
         self.header = ["ply\n",
                   "format ascii 1.0\n",
                   "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
@@ -50,6 +52,8 @@ class PLY():
                   "property uchar red\n",
                   "property uchar green\n",
                   "property uchar blue\n",
+                  "property int label1\n",
+                  "property int label2\n",
                   "end_header\n"]
 
     def get_parallel_lines(self, tol=0.1, min_group=10):
@@ -72,19 +76,22 @@ class PLY():
     def get_nearby_lines(self, tol=0.5, min_group=5):
         # Filters lines based on minimum distance
         all_lines = self.edges.copy()
+        labels = self.edge_labels.copy()
         plys = []
         while len(all_lines) > 0:
             e0 = all_lines.pop(0)
             index = 0
             line_set = [e0]
+            label_set = [labels.pop(0)]
             while index < len(all_lines):
                 if e0.close(all_lines[index], tol=tol):
                     line_set.append(all_lines.pop(index))
+                    label_set.append(labels.pop(index))
                 else:
                     index += 1
             if len(line_set) > min_group:
                 print("Found {} close lines".format(len(line_set)))
-                plys.append(PLY(None, line_set))
+                plys.append(PLY(None, line_set, label_set))
         return plys
 
     def write(self, filename):
@@ -101,13 +108,14 @@ class PLY():
             yield "{} {} {} 255 255 255\n".format(e.line[1, 0], e.line[1, 1], e.line[1, 2])
 
         i = len(self.vertices)
-        for e in self.edges:
-            yield "{} {} 255 255 255\n".format(i, i+1)
+        for e, label in zip(self.edges, self.edge_labels):
+            yield "{} {} 255 255 255 {} {}\n".format(i, i+1, label[0], label[1])
             i += 2
 
     def combine(self, other):
         self.vertices += other.vertices
         self.edges += other.edges
+        self.edge_labels += other.edge_labels
         self.header = ["ply\n",
                   "format ascii 1.0\n",
                   "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
@@ -123,12 +131,14 @@ class PLY():
                   "property uchar red\n",
                   "property uchar green\n",
                   "property uchar blue\n",
+                  "property int label1\n",
+                  "property int label2\n",
                   "end_header\n"]
 
 class PLYEdge(PLY):
 
     def __init__(self, ply):
-        super().__init__(ply.vertices.copy(), ply.edges.copy())
+        super().__init__(ply.vertices.copy(), ply.edges.copy(), ply.edge_labels.copy())
 
     def combine_edges(self):
         """
@@ -150,6 +160,7 @@ class PLYEdge(PLY):
         p2 = avg_pt + avg_direction * max_param
         self.vertices = []
         self.edges = [Edge(Vertex(p1[0], p1[1], p1[2]), Vertex(p2[0], p2[1], p2[2]))]
+        self.edge_labels = [(-1, -1)]
         self.header = ["ply\n",
                   "format ascii 1.0\n",
                   "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
@@ -165,6 +176,8 @@ class PLYEdge(PLY):
                   "property uchar red\n",
                   "property uchar green\n",
                   "property uchar blue\n",
+                  "property int label1\n",
+                  "property int label2\n",
                   "end_header\n"]
 
     def closest_intersection_pt(self):
@@ -187,6 +200,7 @@ class PLYLoader():
     def load(self, filename):
         vertices = []
         edges = []
+        edge_labels = []
         num_vertices = 0
         num_edges = 0
         with open(filename, 'r') as f:
@@ -219,11 +233,15 @@ class PLYLoader():
                     words = l.split()
                     edge = Edge(vertices[int(words[0])], vertices[int(words[1])])
                     edges.append(edge)
+                    if len(words) == 7:
+                        edge_labels.append((int(words[5]), int(words[6])))
+                    else:
+                        edge_labels.append((-1, -1))
                     num_edges -= 1
                 else:
                     raise Exception("We don't deal with faces")
 
-        return PLY(vertices, edges)
+        return PLY(vertices, edges, edge_labels)
 
 class PLYParser():
 
