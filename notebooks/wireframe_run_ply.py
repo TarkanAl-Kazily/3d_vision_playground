@@ -47,15 +47,15 @@ def main(args):
             wpcs.append(wpc)
             wpc.write_line_point_clouds()
 
-    wpc = wpcs.pop(0)
-    i = 1
-    for other in wpcs:
-        print("Combining cloud #{}...".format(i))
-        wpc.combine(other)
-        i += 1
+    #wpc = wpcs.pop(0)
+    #i = 1
+    #for other in wpcs:
+    #    print("Combining cloud #{}...".format(i))
+    #    wpc.combine(other)
+    #    i += 1
 
-    wpc._wireframe_ply_dir = os.path.join(args.project_directory, "wireframe_ply/combined.ply_dir/")
-    wpc.write_line_point_clouds()
+    #wpc._wireframe_ply_dir = os.path.join(args.project_directory, "wireframe_ply/combined.ply_dir/")
+    #wpc.write_line_point_clouds()
 
 
 if __name__ == "__main__":
