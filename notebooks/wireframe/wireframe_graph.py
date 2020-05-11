@@ -141,12 +141,12 @@ class WireframeGraph():
             if not intersect:
                 continue
             if not points:
-                points.append[p]
-                result.append([other_line])
+                points.append(p)
+                result.append([i])
             else:
                 for group, prev_p in enumerate(points):
                     if np.linalg.norm(p - prev_p) < close:
-                        result[group].append(other_line)
+                        result[group].append(i)
                         break
 
         return result
@@ -155,12 +155,11 @@ class WireframeGraph():
 # Utility functions
 ###############################################################
 
-def intersect_2d(l1, l2):
+def intersect_2d(l1, l2, slack=0.05):
     """
     Arguments:
     l1, l2 -- numpy arrays of shape [2, 2]
     """
-    print(l1, l2)
     d1 = l1[1] - l1[0]
     d2 = l2[1] - l2[0]
 
@@ -172,15 +171,14 @@ def intersect_2d(l1, l2):
         return False, None
 
     p = np.array([P[0] / P[2], P[1] / P[2]])
-    print("p: {}".format(p))
     # Check that p lies between each endpoint
-    if np.dot(p - l1[0], d1) < 0:
+    if np.dot(p - l1[0], d1) < -slack:
         return False, None
-    if np.dot(l1[1] - p, d1) < 0:
+    if np.dot(l1[1] - p, d1) < -slack:
         return False, None
-    if np.dot(p - l2[0], d2) < 0:
+    if np.dot(p - l2[0], d2) < -slack:
         return False, None
-    if np.dot(l2[1] - p, d2) < 0:
+    if np.dot(l2[1] - p, d2) < -slack:
         return False, None
 
     return True, p
