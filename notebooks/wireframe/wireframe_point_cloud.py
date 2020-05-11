@@ -69,9 +69,9 @@ class WireframePointCloud():
         # Length is number of lines
         # Elements are numpy arrays of shape [2, 3]
         self._fitted_3d_lines = []
-        fitter = wireframe.wireframe_ransac.Line3DRANSAC(self._line_ransac_iterations, self._line_inlier_thresh, None)
+        self.fitter = wireframe.wireframe_ransac.Line3DRANSAC(self._line_ransac_iterations, self._line_inlier_thresh, None)
         for cloud in self._line_point_clouds:
-            line, n_inliers = fitter.ransac(cloud)
+            line, n_inliers = self.fitter.ransac(cloud)
             if n_inliers < self._min_line_inliers:
                 line = np.array([])
             self._fitted_3d_lines.append(line)
@@ -83,7 +83,7 @@ class WireframePointCloud():
                 if line.shape[0] == 0:
                     self._c.append(np.broadcast_to(np.array([255, 0, 0]), (cloud.shape[0], 3)))
                     continue
-                error = fitter.get_error(cloud, line)
+                error = self.fitter.get_error(cloud, line)
                 colors = np.where(np.expand_dims(error < self._line_inlier_thresh, 1), np.array([[255, 255, 255]]), np.array([[255, 0, 0]]))
                 colors = np.vstack([colors, np.broadcast_to(255, (4, 3))])
                 self._c.append(colors)
@@ -171,7 +171,101 @@ class WireframePointCloud():
         Arguments:
         other_wpc -- The other WireframePointCloud to add to this object
         """
-        raise NotImplementedError()
+        for idx in range(len(other_wpc._line_point_clouds)):
+            pc = other_wpc._line_point_clouds[idx]
+            line = other_wpc._fitted_3d_lines[idx]
+            self._line_point_clouds.append(pc)
+            self._fitted_3d_lines.append(line)
+            if self._color_inliers:
+                if line.shape[0] == 0:
+                    self._c.append(np.broadcast_to(np.array([255, 0, 0]), (pc.shape[0], 3)))
+                else:
+                    error = self.fitter.get_error(pc, line)
+                    colors = np.where(np.expand_dims(error < self._line_inlier_thresh, 1), np.array([[255, 255, 255]]), np.array([[255, 0, 0]]))
+                    colors = np.vstack([colors, np.broadcast_to(255, (4, 3))])
+                    self._c.append(colors)
+
+        iterations = 0
+        print("[WPC DEBUG] Iter: {}, Num Point Clouds: {}".format(iterations, len(self._line_point_clouds)))
+        while self.simplify():
+            iterations += 1
+            print("[WPC DEBUG] Iter: {}, Num Point Clouds: {}".format(iterations, len(self._line_point_clouds)))
+        print("[WPC DEBUG] Combining took {} iterations".format(iterations))
+
+    def simplify(self):
+        """
+        Attempts to reduce the number of identified lines by combining overlapping line segments
+
+        Returns:
+        bool -- True iff work was done to simplify the WireframePointCloud.
+        """
+        ret = False
+        new_point_clouds = []
+        new_3d_lines = []
+        if self._color_inliers:
+            new_c = []
+        while len(self._line_point_clouds) > 0:
+            cloud = self._line_point_clouds.pop(0)
+            line = self._fitted_3d_lines.pop(0)
+            if line.shape[0] == 0:
+                # Point cloud doesn't have a fitted line, so drop point cloud
+                continue
+
+            num_points = cloud.shape[0]
+            to_combine = []
+            for i, (pc, l) in enumerate(zip(self._line_point_clouds, self._fitted_3d_lines)):
+                if l.shape[0] == 0:
+                    # No fitted line, so ignore
+                    continue
+                # If line overlaps and has same direction, add i to idxs
+                if lines_overlap(line, l) and lines_close(line, l):
+                    ret = True
+                    to_combine.append(i)
+                    num_points += pc.shape[0]
+
+            # Shortcut if no overlaps found
+            if len(to_combine) == 0:
+                new_point_clouds.append(cloud)
+                new_3d_lines.append(line)
+                if self._color_inliers:
+                    error = self.fitter.get_error(cloud, line)
+                    colors = np.where(np.expand_dims(error < self._line_inlier_thresh, 1), np.array([[255, 255, 255]]), np.array([[255, 0, 0]]))
+                    colors = np.vstack([colors, np.broadcast_to(255, (4, 3))])
+                    new_c.append(colors)
+                continue
+
+            # Compute new cloud and line
+            new_cloud = np.ndarray((num_points, 3))
+            idx = cloud.shape[0]
+            new_cloud[0:idx, :] = cloud
+            for i in sorted(to_combine, reverse=True):
+                # Pop to remove from list
+                pc = self._line_point_clouds.pop(i)
+                l = self._fitted_3d_lines.pop(i)
+                new_cloud[idx:idx + pc.shape[0], :] = pc
+                idx += pc.shape[0]
+
+            new_point_clouds.append(new_cloud)
+            new_line, n_inliers = self.fitter.ransac(new_cloud)
+            if n_inliers < self._min_line_inliers:
+                new_line = np.array([])
+            new_3d_lines.append(line)
+            if self._color_inliers:
+                if new_line.shape[0] == 0:
+                    new_c.append(np.broadcast_to(np.array([255, 0, 0]), (new_cloud.shape[0], 3)))
+                else:
+                    error = self.fitter.get_error(new_cloud, new_line)
+                    colors = np.where(np.expand_dims(error < self._line_inlier_thresh, 1), np.array([[255, 255, 255]]), np.array([[255, 0, 0]]))
+                    colors = np.vstack([colors, np.broadcast_to(255, (4, 3))])
+                    new_c.append(colors)
+
+        # Update data structures
+        self._line_point_clouds = new_point_clouds
+        self._fitted_3d_lines = new_3d_lines
+        if self._color_inliers:
+            self._c = new_c
+
+        return ret
 
 #########################################################
 # Other utility functions
@@ -208,3 +302,50 @@ def get_points_near_line_2D(points, line, dist=20.0):
     in_interval = np.logical_and(0 < ts, ts < np.linalg.norm(end - start) ** 2)
     condition = np.logical_and(close_enough, in_interval)
     return np.nonzero(condition), points[condition]
+
+def lines_overlap(l1, l2):
+    """
+    Determines if 3D line segments overlap.
+
+    Arguments:
+    l1, l2 -- numpy arrays of shape [2, 3] giving (start, end) of each line.
+    """
+    d1 = l1[1] - l1[0]
+    len1 = np.linalg.norm(d1)
+    d1 /= len1
+    d2 = l2[1] - l2[0]
+    len2 = np.linalg.norm(d2)
+    d2 /= len2
+
+    l1_start_param = np.dot(l1[0] - l2[0], d2)
+    l1_end_param = np.dot(l1[1] - l2[0], d2)
+    # Check if l1 is fully before or fully after l2
+    return not ((l1_start_param < 0 and l1_end_param < 0) or
+                (l1_start_param > len2 and l1_end_param > len2))
+
+def lines_close(l1, l2, dir_tol=0.2, pos_tol=1.0):
+    """
+    Determines if 3D line segments are in the same position/direction.
+
+    Arguments:
+    l1, l2 -- numpy arrays of shape [2, 3] giving (start, end) of each line.
+    tol -- how close the absolute directions need to be to be considered the same
+    """
+    d1 = l1[1] - l1[0]
+    len1 = np.linalg.norm(d1)
+    d1 /= len1
+    d2 = l2[1] - l2[0]
+    len2 = np.linalg.norm(d2)
+    d2 /= len2
+
+    parallel = np.allclose(d1, d2, atol=dir_tol) or np.allclose(d1, -d2, atol=dir_tol)
+
+    l1_start_dist = np.linalg.norm(np.cross(l1[0] - l2[0], d2))
+    l1_end_dist = np.linalg.norm(np.cross(l1[1] - l2[0], d2))
+    l2_start_dist = np.linalg.norm(np.cross(l2[0] - l1[0], d1))
+    l2_end_dist = np.linalg.norm(np.cross(l2[1] - l1[0], d1))
+
+    same_pos = (l1_start_dist < pos_tol and l1_end_dist < pos_tol and
+                 l2_start_dist < pos_tol and l2_end_dist < pos_tol)
+
+    return same_pos and parallel
