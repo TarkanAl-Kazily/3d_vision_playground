@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+import wireframe.wireframe_ransac
+
 class Vertex():
 
     def __init__(self, x, y, z):
@@ -27,6 +29,11 @@ class Edge():
         pts = np.linspace(self.line[0], self.line[1], num=num_pts)
         for p in pts:
             if other.distance(p) > tol:
+                return False
+
+        pts = np.linspace(other.line[0], other.line[1], num=num_pts)
+        for p in pts:
+            if self.distance(p) > tol:
                 return False
         return True
 
@@ -134,6 +141,46 @@ class PLY():
         self.edge_labels = []
         self.update_header()
 
+    def remove_some_vertices(self, keep_every):
+        new_vertices = []
+        for i, v in enumerate(self.vertices):
+            if i % keep_every == 0:
+                new_vertices.append(v)
+        self.vertices = new_vertices
+        self.update_header()
+
+    def enforce_bounding_box(self, c1, c2):
+        min_x = min(c1[0], c2[0])
+        min_y = min(c1[1], c2[1])
+        min_z = min(c1[2], c2[2])
+        max_x = max(c1[0], c2[0])
+        max_y = max(c1[1], c2[1])
+        max_z = max(c1[2], c2[2])
+        i = 0
+        while i < len(self.vertices):
+            v = self.vertices[i]
+            if ((v.pt[0] < min_x or v.pt[1] < min_y or v.pt[2] < min_z) or 
+                    (v.pt[0] > max_x or v.pt[1] > max_y or v.pt[2] > max_z)):
+                self.vertices.pop(i)
+                continue
+            i += 1
+
+        i = 0
+        while i < len(self.edges):
+            l = self.edges[i].line
+            v = l[0]
+            if ((v[0] < min_x or v[1] < min_y or v[2] < min_z) or 
+                    (v[0] > max_x or v[1] > max_y or v[2] > max_z)):
+                self.edges.pop(i)
+                continue
+            v = l[1]
+            if ((v[0] < min_x or v[1] < min_y or v[2] < min_z) or 
+                    (v[0] > max_x or v[1] > max_y or v[2] > max_z)):
+                self.edges.pop(i)
+                continue
+            i += 1
+        self.update_header()
+
 class PLYEdge(PLY):
 
     def __init__(self, ply):
@@ -160,24 +207,7 @@ class PLYEdge(PLY):
         self.vertices = []
         self.edges = [Edge(Vertex(p1[0], p1[1], p1[2]), Vertex(p2[0], p2[1], p2[2]))]
         self.edge_labels = [(-1, -1)]
-        self.header = ["ply\n",
-                  "format ascii 1.0\n",
-                  "element vertex {}\n".format(len(self.vertices) + 2 * len(self.edges)),
-                  "property float x\n",
-                  "property float y\n",
-                  "property float z\n",
-                  "property uchar red\n",
-                  "property uchar green\n",
-                  "property uchar blue\n",
-                  "element edge {}\n".format(len(self.edges)),
-                  "property int vertex1\n",
-                  "property int vertex2\n",
-                  "property uchar red\n",
-                  "property uchar green\n",
-                  "property uchar blue\n",
-                  "property int label1\n",
-                  "property int label2\n",
-                  "end_header\n"]
+        self.update_header()
 
     def closest_intersection_pt(self):
         # See wikipedia: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#In_more_than_two_dimensions
@@ -190,6 +220,13 @@ class PLYEdge(PLY):
 
         res, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
         return res
+
+    def combine_edges_with_ransac(self, iterations, inlier_thresh):
+        fitter = wireframe.wireframe_ransac.Line3DRANSAC(iterations, inlier_thresh, None)
+        line, n_inliers = fitter.ransac(np.array([v.pt for v in self.vertices]))
+        self.edges = [Edge(Vertex(line[0, 0], line[0, 1], line[0, 2]), Vertex(line[1, 0], line[1, 1], line[1, 2]))]
+        self.edge_labels = [(-1, -1)]
+        self.update_header()
 
 class PLYLoader():
 

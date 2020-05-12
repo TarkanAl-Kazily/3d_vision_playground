@@ -71,6 +71,7 @@ def main(args):
     w_args.l_thresh = 0.25
     w_args.reconstruction = 0
     w_args.score_thresh = 0.95
+    w_args.device = args.device
 
     wpcs, records = wireframe_run_ply.main(w_args)
     record_dict = {}
@@ -96,15 +97,23 @@ def main(args):
     for imname, imline, ply in all_plys:
         merged.combine(ply)
 
+    merged.write(os.path.join(args.project_directory, "merged_wireframe.ply"))
+    print("Wrote merged_wireframe.ply...")
+
     filtered_by_distance = merged.get_nearby_lines(tol=args.tol, min_group=args.min_group)
     combined = myply.PLY(None, None, None)
     matches = []
     count = 0
     for p in filtered_by_distance:
-        e = myply.PLYEdge(p)
+        print("Combining filtered line {}...".format(count))
+        e = myply.PLYEdge(myply.PLY(None, None, None))
+        for label in p.edge_labels:
+            e.combine(plys_by_im_line[label])
+
         fname = "complex_{}.ply".format(count)
         e.write(os.path.join(args.project_directory, "wireframe_ply", fname))
-        e.combine_edges()
+        e.combine_edges_with_ransac(20, w_args.l_thresh)
+        e.remove_all_vertices()
         combined.combine(e)
         fname = "simplified_{}.ply".format(count)
         count += 1
@@ -168,6 +177,7 @@ if __name__ == "__main__":
     parser.add_argument('--tol', type=float, default=0.2, help="Distance tolerance for grouping lines")
     parser.add_argument('--min_group', type=int, default=3, help="Minimum number of distance based matches for inclusion")
     parser.add_argument('--plot', action='store_true', help="Plot matches")
+    parser.add_argument('--device', type=str, default='', help="GPU Devices")
     args = parser.parse_args()
     main(args)
 

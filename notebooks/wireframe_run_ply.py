@@ -21,7 +21,7 @@ def main(args):
     config_file = utils.data("wireframe.yaml")
     model_file = utils.data("pretrained_lcnn.pth.tar")
 
-    w = wireframe.Wireframe(config_file, model_file, "")
+    w = wireframe.Wireframe(config_file, model_file, args.device)
     if not w.setup():
         print(w.error)
     else:
@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('--color_inliers', action="store_true", help="Use a fixed coloring scheme and indicate inliers a different color")
     parser.add_argument('--reconstruction', '-r', type=int, default=-1, help="which reconstruction to generate plys with")
     parser.add_argument('--recompute', action="store_true", help="force recomputing wireframe records")
+    parser.add_argument('--device', type=str, default='', help="GPU Devices")
     args = parser.parse_args()
     main(args)
 
