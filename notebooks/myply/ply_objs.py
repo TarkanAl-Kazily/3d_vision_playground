@@ -28,6 +28,11 @@ class Edge():
         for p in pts:
             if other.distance(p) > tol:
                 return False
+
+        pts = np.linspace(other.line[0], other.line[1], num=num_pts)
+        for p in pts:
+            if self.distance(p) > tol:
+                return False
         return True
 
 class PLY():
