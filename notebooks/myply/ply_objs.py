@@ -35,7 +35,7 @@ class Edge():
     def distance(self, point):
         return np.linalg.norm(np.cross(self.direction(), point - self.line[0]))
 
-    def close(self, other, tol=0.5, num_pts=10):
+    def close(self, other, tol=0.5, num_pts=2):
         pts = np.linspace(self.line[0], self.line[1], num=num_pts)
         for p in pts:
             if other.distance(p) > tol:
@@ -200,6 +200,7 @@ class PLYEdge(PLY):
 
     def __init__(self, ply):
         super().__init__(ply.vertices.copy(), ply.edges.copy(), ply.edge_labels.copy())
+        # v is the 3x3 rotation matrix representing the manhattan constraint. 
         self.v = None
 
     def combine_edges(self):
@@ -241,6 +242,25 @@ class PLYEdge(PLY):
         fitter = wireframe.wireframe_ransac.Line3DRANSAC(iterations, inlier_thresh, None)
         line, n_inliers = fitter.ransac(np.array([v.pt for v in self.vertices]))
         self.edges = [Edge(Vertex(line[0, 0], line[0, 1], line[0, 2]), Vertex(line[1, 0], line[1, 1], line[1, 2]))]
+        self.edge_labels = [(-1, -1)]
+        self.update_header()
+
+    def combine_edges_with_direction(self, direction):
+        avg_pt = np.zeros(3)
+        for e in self.edges:
+            avg_pt += e.line[0]
+        avg_pt /= len(self.edges)
+        min_param = 10000
+        max_param = -10000
+        for e in self.edges:
+            param1 = np.dot(direction, e.line[0] - avg_pt)
+            param2 = np.dot(direction, e.line[1] - avg_pt)
+            min_param = min(min_param, param1, param2)
+            max_param = max(max_param, param1, param2)
+        p1 = avg_pt + direction * min_param
+        p2 = avg_pt + direction * max_param
+        self.vertices = []
+        self.edges = [Edge(Vertex(p1[0], p1[1], p1[2]), Vertex(p2[0], p2[1], p2[2]))]
         self.edge_labels = [(-1, -1)]
         self.update_header()
 

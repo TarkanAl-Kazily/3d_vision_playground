@@ -6,6 +6,7 @@ import wireframe
 import wireframe_run_ply
 import myply
 import skimage.io
+import numpy as np
 
 def load_image(imname):
     im = skimage.io.imread(imname)
@@ -25,18 +26,30 @@ class Match():
         self.ply = ply
         self.labels = labels
 
-    def plot_matches(self, proj_dir, initial_lines, batch=3):
+    def plot_matches(self, proj_dir, initial_lines, batch=9):
         linenums = [l[1] for l in self.labels]
         imnums = [l[0] for l in self.labels]
         images = ["img_{}.png".format(l[0]) for l in self.labels]
         idx = 0
         while len(images[idx:]) >= batch:
-            fig, axes = plt.subplots(1, batch)
+            if batch % 3 == 0:
+                fig, axes = plt.subplots(3, int(batch / 3))
+                step = 3
+            elif batch % 2 == 0:
+                fig, axes = plt.subplots(2, int(batch / 2))
+                step = 2
+            else:
+                fig, axes = plt.subplots(1, batch)
+                step = 1
             for i in range(batch):
                 im = load_image(os.path.join(proj_dir, "images", images[idx + i]))
-                axes[i].imshow(im)
                 l = initial_lines[imnums[idx + i]][linenums[idx + i]]
-                axes[i].plot([l[0, 0], l[1, 0]], [l[0, 1], l[1, 1]], c='r', linewidth=2)
+                if step == 1:
+                    axes[i].imshow(im)
+                    axes[i].plot([l[0, 0], l[1, 0]], [l[0, 1], l[1, 1]], c='r', linewidth=2)
+                else:
+                    axes[int(i / step), i % step].imshow(im)
+                    axes[int(i / step), i % step].plot([l[0, 0], l[1, 0]], [l[0, 1], l[1, 1]], c='r', linewidth=2)
             plt.gca().xaxis.set_major_locator(plt.NullLocator())
             plt.gca().yaxis.set_major_locator(plt.NullLocator())
             plt.show()
@@ -102,7 +115,7 @@ def main(args):
 
     # Predicts and enforces the manhattan constraint
     manhattan = myply.PLYEdge(merged)
-    manhattan.assert_basis_directions(1000, 0.2)
+    manhattan.assert_basis_directions(1000, 0.18)
     basis_directions = manhattan.v
     manhattan.write(os.path.join(args.project_directory, "manhattan_wireframe.ply"))
     print("Wrote manhattan_wireframe.ply...")
@@ -117,9 +130,11 @@ def main(args):
         for label in p.edge_labels:
             e.combine(plys_by_im_line[label])
 
+        d = np.argmax(np.abs(np.dot(e.edges[0].direction(), basis_directions.transpose())))
+        direction = basis_directions[d]
         fname = "complex_{}.ply".format(count)
         e.write(os.path.join(args.project_directory, "wireframe_ply", fname))
-        e.combine_edges_with_ransac(20, w_args.l_thresh)
+        e.combine_edges_with_direction(direction)
         e.remove_all_vertices()
         combined.combine(e)
         fname = "simplified_{}.ply".format(count)
