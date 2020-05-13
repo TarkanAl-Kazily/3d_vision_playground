@@ -209,7 +209,7 @@ class PLYEdge(PLY):
         self.edge_labels = [(-1, -1)]
         self.update_header()
 
-    def closest_intersection_pt(self):
+    def closest_intersection_pt(self, thresh=0.1):
         # See wikipedia: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#In_more_than_two_dimensions
 
         A = np.zeros((3, 3))
@@ -219,7 +219,14 @@ class PLYEdge(PLY):
             b += np.matmul(np.eye(3) - np.outer(e.direction(), e.direction()), e.line[0])
 
         res, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
-        return res
+        # Check here how far the point is from the start or end point of the line
+        for e in self.edges:
+            dist_start = np.linalg.norm(res - e.line[0]) 
+            dist_end = np.linalg.norm(res - e.line[1]) 
+            # if the intersection is close to the end points of any lines return it
+            if dist_start < thresh or dist_end < thresh:
+                return res
+        
 
     def combine_edges_with_ransac(self, iterations, inlier_thresh):
         fitter = wireframe.wireframe_ransac.Line3DRANSAC(iterations, inlier_thresh, None)

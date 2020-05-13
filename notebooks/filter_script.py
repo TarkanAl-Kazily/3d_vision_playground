@@ -130,46 +130,51 @@ def main(args):
     # group matches all correspond to a single intersection point
     adjacencies = {}
 
-    # for ei, m in enumerate(matches):
-    #     # Find all other matches incident with this one
-    #     adjacencies[ei] = []
-    #     for imnum, linenum in m.labels:
-    #         g = wireframe.WireframeGraph(record_dict[imnum], threshold=w_args.score_thresh)
-    #         intersecting_linenums = g.get_intersecting_lines(linenum)
-    #         for group in intersecting_linenums:
-    #             group_matches = []
-    #             if args.plot:
-    #                 g.plot_graph(g.g, all_images[imnum], highlight=[linenum])
-    #                 g.plot_graph(g.g, all_images[imnum], highlight=group)
-    #             for other_linenum in group:
-    #                 label = (imnum, other_linenum)
-    #                 for other_ei, other_m in enumerate(matches):
-    #                     if (label in other_m.labels):
-    #                         group_matches.append(other_ei)
-    #             adjacencies[ei].append(group_matches)
+    for ei, m in enumerate(matches):
+        print('Processing {}th match'.format(ei))
+        # Find all other matches incident with this one
+        adjacencies[ei] = []
+        for imnum, linenum in m.labels:
+            g = wireframe.WireframeGraph(record_dict[imnum], threshold=w_args.score_thresh)
+            intersecting_linenums = g.get_intersecting_lines(linenum)
+            for group in intersecting_linenums:
+                group_matches = []
+                if args.plot:
+                    g.plot_graph(g.g, all_images[imnum], highlight=[linenum])
+                    g.plot_graph(g.g, all_images[imnum], highlight=group)
+                for other_linenum in group:
+                    label = (imnum, other_linenum)
+                    for other_ei, other_m in enumerate(matches):
+                        if (label in other_m.labels):
+                            group_matches.append(other_ei)
+                adjacencies[ei].append(group_matches)
+
 
     # With adjacencies add a vertex that is the closest intersection point for all the adjacent edges
-    # count = 0
-    # vertex_plys = []
-    # for ei in adjacencies:
-    #     groups = adjacencies[ei]
-    #     base_match = matches[ei]
-    #     for group in groups:
-    #         vertex_ply = myply.PLYEdge(base_match.ply)
-    #         for other_ei in group:
-    #             vertex_ply.combine(matches[other_ei].ply)
-    #         intersection_pt = vertex_ply.closest_intersection_pt()
-    #         vertex_ply.add_vertices([myply.Vertex(intersection_pt[0], intersection_pt[1], intersection_pt[2])])
-    #         vertex_ply.write(os.path.join(args.project_directory, "wireframe_ply", "group_{}.ply".format(count)))
-    #         count += 1
-    #         vertex_ply.remove_all_edges()
-    #         vertex_plys.append(vertex_ply)
+    count = 0
+    vertex_plys = []
+    for ei in adjacencies:
+        print('Processing {}th adjacency'.format(ei))
+        groups = adjacencies[ei]
+        base_match = matches[ei]
+        for group in groups:
+            vertex_ply = myply.PLYEdge(base_match.ply)
+            for other_ei in group:
+                vertex_ply.combine(matches[other_ei].ply)
+            intersection_pt = vertex_ply.closest_intersection_pt(thresh=0.45)
+            if intersection_pt is not None:
+                vertex_ply.add_vertices([myply.Vertex(intersection_pt[0], intersection_pt[1], intersection_pt[2])])
+                vertex_ply.write(os.path.join(args.project_directory, "wireframe_ply", "group_{}.ply".format(count)))
+                count += 1
+                vertex_ply.remove_all_edges()
+                vertex_plys.append(vertex_ply)
+    print("Got %d good vertices" % (count))
 
-    # intersection_pts = myply.PLY(None, None, None)
-    # for ply in vertex_plys:
-    #     intersection_pts.combine(ply)
+    intersection_pts = myply.PLY(None, None, None)
+    for ply in vertex_plys:
+        intersection_pts.combine(ply)
 
-    # intersection_pts.write(os.path.join(args.project_directory, "wireframe_ply", "intersection_pts.ply"))
+    intersection_pts.write(os.path.join(args.project_directory, "wireframe_ply", "intersection_pts.ply"))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
