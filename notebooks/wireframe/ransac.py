@@ -18,7 +18,7 @@ class RANSAC():
     t -- threshold on error defining inliers
     d -- number of inliers that allow shortcutting the algorithm
     """
-    def __init__(self, max_iterations, num_samples, inlier_thresh, good_inlier_count):
+    def __init__(self, max_iterations, num_samples, inlier_thresh, good_inlier_count, use_all=True):
         """
         Arguments:
         max_iterations -- maximum number of iterations to run
@@ -31,6 +31,7 @@ class RANSAC():
         self.n = num_samples
         self.t = inlier_thresh
         self.d = good_inlier_count
+        self.use_all = use_all
 
         self._rng = np.random.default_rng()
 
@@ -61,15 +62,21 @@ class RANSAC():
             samples = self._rng.choice(data, self.n, replace=False)
             model = self.fit(samples)
             error = self.get_error(data, model)
-            inliers = data[self.get_error(data, model) < self.t]
+            inliers = data[error < self.t]
             if bestmodel is None:
                 # Initialize the model with this model (don't bother with refitting)
                 bestmodel = model
                 bestfit = inliers
             elif inliers.shape[0] > bestfit.shape[0]:
                 # Choose best model as the one that fits all of these inliers
-                bestmodel = self.fit(inliers)
-                bestfit = data[self.get_error(data, model) < self.t]
+                if self.use_all:
+                    bestmodel = self.fit(inliers)
+                    bestfit = data[self.get_error(data, bestmodel) < self.t]
+                else:
+                    bestmodel = model
+                    bestfit = inliers
+                if bestfit.shape[0] < inliers.shape[0]:
+                    print("RANSAC Warning: error function probably bad")
 
             # Shortcut if we deem that we have a good enough number of inliers
             if self.d is not None and bestfit.shape[0] > self.d:

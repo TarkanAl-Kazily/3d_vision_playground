@@ -15,6 +15,16 @@ class Edge():
     def direction(self):
         return (self.line[1] - self.line[0]) / (np.linalg.norm(self.line[1] - self.line[0]))
 
+    def update_direction(self, new_direction):
+        center = (self.line[0] + self.line[1]) / 2.0
+        t1 = np.dot(self.line[0] - center, new_direction)
+        t2 = np.dot(self.line[1] - center, new_direction)
+        if t2 - t1 < 0:
+            temp = t1
+            t1 = t2
+            t2 = temp
+        self.line = np.vstack([center + t1 * new_direction, center + t2 * new_direction])
+
     def parallel2(self, other, tol=0.1):
         return np.linalg.norm(np.cross(self.direction(), other.direction())) < tol
 
@@ -25,7 +35,7 @@ class Edge():
     def distance(self, point):
         return np.linalg.norm(np.cross(self.direction(), point - self.line[0]))
 
-    def close(self, other, tol=0.5, num_pts=10):
+    def close(self, other, tol=0.5, num_pts=2):
         pts = np.linspace(self.line[0], self.line[1], num=num_pts)
         for p in pts:
             if other.distance(p) > tol:
@@ -112,6 +122,11 @@ class PLY():
         self.vertices += vertices
         self.update_header()
 
+    def add_edges(self, edges, edge_labels):
+        self.edges += edges
+        self.edge_labels += edge_labels
+        self.update_header()
+
     def update_header(self):
         self.header = ["ply\n",
                   "format ascii 1.0\n",
@@ -185,6 +200,8 @@ class PLYEdge(PLY):
 
     def __init__(self, ply):
         super().__init__(ply.vertices.copy(), ply.edges.copy(), ply.edge_labels.copy())
+        # v is the 3x3 rotation matrix representing the manhattan constraint. 
+        self.v = None
 
     def combine_edges(self):
         """
@@ -233,6 +250,86 @@ class PLYEdge(PLY):
         line, n_inliers = fitter.ransac(np.array([v.pt for v in self.vertices]))
         self.edges = [Edge(Vertex(line[0, 0], line[0, 1], line[0, 2]), Vertex(line[1, 0], line[1, 1], line[1, 2]))]
         self.edge_labels = [(-1, -1)]
+        self.update_header()
+
+    def combine_edges_with_direction(self, direction):
+        avg_pt = np.zeros(3)
+        for e in self.edges:
+            avg_pt += e.line[0]
+        avg_pt /= len(self.edges)
+        min_param = 10000
+        max_param = -10000
+        for e in self.edges:
+            param1 = np.dot(direction, e.line[0] - avg_pt)
+            param2 = np.dot(direction, e.line[1] - avg_pt)
+            min_param = min(min_param, param1, param2)
+            max_param = max(max_param, param1, param2)
+        p1 = avg_pt + direction * min_param
+        p2 = avg_pt + direction * max_param
+        self.vertices = []
+        self.edges = [Edge(Vertex(p1[0], p1[1], p1[2]), Vertex(p2[0], p2[1], p2[2]))]
+        self.edge_labels = [(-1, -1)]
+        self.update_header()
+
+    def add_basis_directions(self, iterations, inlier_thresh):
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        self.v, n_inliers = fitter.ransac(directions)
+        print("Basis directions had {} inliers".format(n_inliers))
+        for i in range(3):
+            edge = Edge(Vertex(0, 0, 0), Vertex(10* self.v[i,0], 10* self.v[i,1], 10* self.v[i,2]))
+            self.edges.append(edge)
+            self.edge_labels.append((-4 + i, -4 + i))
+        self.update_header()
+        return self.v
+
+    def filter_basis_directions(self, iterations, inlier_thresh):
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        if self.v is None:
+            self.v, n_inliers = fitter.ransac(directions)
+            print("Basis directions had {} inliers".format(n_inliers))
+        error = fitter.get_error(directions, self.v)
+        new_edges = []
+        new_labels = []
+        count = 0
+        for i in range(len(self.edges)):
+            if error[i] < 1.5 * inlier_thresh:
+                new_edges.append(self.edges[i])
+                new_labels.append(self.edge_labels[i])
+                count += 1
+        print("Self computed {} inliers".format(count))
+        self.edges = new_edges
+        self.edge_labels = new_labels
+        self.update_header()
+
+    def assert_basis_directions(self, iterations, inlier_thresh):
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        if self.v is None:
+            self.v, n_inliers = fitter.ransac(directions)
+            print("Basis directions had {} inliers".format(n_inliers))
+        error = fitter.get_error(directions, self.v)
+        new_edges = []
+        new_labels = []
+        count = 0
+        for i in range(len(self.edges)):
+            if error[i] < 1.5 * inlier_thresh:
+                d = np.argmax(np.abs(np.dot(self.edges[i].direction(), self.v.transpose())))
+                print("for edge {} chose direction {} with dot product {}".format(i, d, np.dot(self.edges[i].direction(), self.v[d])))
+                self.edges[i].update_direction(self.v[d])
+                new_edges.append(self.edges[i])
+                new_labels.append(self.edge_labels[i])
+                count += 1
+        print("Self computed {} inliers".format(count))
+        self.edges = new_edges
+        self.edge_labels = new_labels
         self.update_header()
 
 class PLYLoader():
