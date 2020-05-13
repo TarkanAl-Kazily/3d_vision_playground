@@ -261,7 +261,7 @@ class PLYEdge(PLY):
         new_labels = []
         count = 0
         for i in range(len(self.edges)):
-            if error[i] < inlier_thresh:
+            if error[i] < 1.5 * inlier_thresh:
                 new_edges.append(self.edges[i])
                 new_labels.append(self.edge_labels[i])
                 count += 1

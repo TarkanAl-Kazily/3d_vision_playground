@@ -100,6 +100,11 @@ def main(args):
     merged.write(os.path.join(args.project_directory, "merged_wireframe.ply"))
     print("Wrote merged_wireframe.ply...")
 
+    manhattan = myply.PLYEdge(merged)
+    manhattan.filter_basis_directions(1000, 0.2)
+    manhattan.write(os.path.join(args.project_directory, "manhattan_wireframe.ply"))
+    print("Wrote manhattan_wireframe.ply...")
+
     filtered_by_distance = merged.get_nearby_lines(tol=args.tol, min_group=args.min_group)
     combined = myply.PLY(None, None, None)
     matches = []
