@@ -112,6 +112,11 @@ class PLY():
         self.vertices += vertices
         self.update_header()
 
+    def add_edges(self, edges, edge_labels):
+        self.edges += edges
+        self.edge_labels += edge_labels
+        self.update_header()
+
     def update_header(self):
         self.header = ["ply\n",
                   "format ascii 1.0\n",
@@ -185,6 +190,7 @@ class PLYEdge(PLY):
 
     def __init__(self, ply):
         super().__init__(ply.vertices.copy(), ply.edges.copy(), ply.edge_labels.copy())
+        self.v = None
 
     def combine_edges(self):
         """
@@ -226,6 +232,42 @@ class PLYEdge(PLY):
         line, n_inliers = fitter.ransac(np.array([v.pt for v in self.vertices]))
         self.edges = [Edge(Vertex(line[0, 0], line[0, 1], line[0, 2]), Vertex(line[1, 0], line[1, 1], line[1, 2]))]
         self.edge_labels = [(-1, -1)]
+        self.update_header()
+
+    def add_basis_directions(self, iterations, inlier_thresh):
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        self.v, n_inliers = fitter.ransac(directions)
+        print("Basis directions had {} inliers".format(n_inliers))
+        for i in range(3):
+            edge = Edge(Vertex(0, 0, 0), Vertex(10* self.v[i,0], 10* self.v[i,1], 10* self.v[i,2]))
+            self.edges.append(edge)
+            self.edge_labels.append((-4 + i, -4 + i))
+        self.update_header()
+        return self.v
+
+    def filter_basis_directions(self, iterations, inlier_thresh):
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        if self.v is None:
+            self.v, n_inliers = fitter.ransac(directions)
+            print("Basis directions had {} inliers".format(n_inliers))
+        error = fitter.get_error(directions, self.v)
+        new_edges = []
+        new_labels = []
+        count = 0
+        for i in range(len(self.edges)):
+            if error[i] < inlier_thresh:
+                new_edges.append(self.edges[i])
+                new_labels.append(self.edge_labels[i])
+                count += 1
+        print("Self computed {} inliers".format(count))
+        self.edges = new_edges
+        self.edge_labels = new_labels
         self.update_header()
 
 class PLYLoader():

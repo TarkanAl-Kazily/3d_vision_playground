@@ -70,3 +70,50 @@ class Line3DRANSAC(wireframe.ransac.RANSAC):
                     np.multiply(np.expand_dims(params, 1), direction), axis=1)
         return error
 
+class ManhattanRANSAC(wireframe.ransac.RANSAC):
+    """
+    ManhattanRANSAC
+
+    Given a set of lines, fits a best guess basis directions
+
+    Attributes:
+    """
+    def __init__(self, max_iterations, inlier_thresh, good_inlier_count):
+        super().__init__(max_iterations, 3, inlier_thresh, good_inlier_count, use_all=False)
+
+    def fit(self, samples):
+        """
+        Given a set of samples returns a model fitting them.
+
+        Intended to be implemented by subclasses.
+
+        Arguments:
+        samples -- a numpy array of shape [N_SAMPLES, 3]. (line directions)
+                   all samples must be used as part of fitting process.
+
+        Returns:
+        model -- a numpy array of shape [3, 3].
+            model[0], model[1], model[2] are the three basis directions found.
+            satisfies a rotation matrix (orthonormal directions)
+        """
+        _, _, vh = np.linalg.svd(samples)
+        return vh
+
+    def get_error(self, data, model):
+        """
+        Given a set of samples and a model, returns the error for each sample from the model.
+
+        Intended to be implemented by subclasses.
+
+        Arguments:
+        data -- a numpy array of shape [N_SAMPLES, 3] (line directions)
+        model -- a numpy array of shape [3, 3]
+
+        Returns:
+        error -- a numpy array of shape [N_SAMPLES] corresponding to the error of data points
+        """
+        N_SAMPLES = data.shape[0]
+        dot_prods = np.abs(np.matmul(data, model.transpose()))
+        amax = np.amax(dot_prods, axis=1)
+        error = np.sum(dot_prods, axis=1) - amax + (np.ones(N_SAMPLES) - amax)
+        return error
