@@ -15,6 +15,16 @@ class Edge():
     def direction(self):
         return (self.line[1] - self.line[0]) / (np.linalg.norm(self.line[1] - self.line[0]))
 
+    def update_direction(self, new_direction):
+        center = (self.line[0] + self.line[1]) / 2.0
+        t1 = np.dot(self.line[0] - center, new_direction)
+        t2 = np.dot(self.line[1] - center, new_direction)
+        if t2 - t1 < 0:
+            temp = t1
+            t1 = t2
+            t2 = temp
+        self.line = np.vstack([center + t1 * new_direction, center + t2 * new_direction])
+
     def parallel2(self, other, tol=0.1):
         return np.linalg.norm(np.cross(self.direction(), other.direction())) < tol
 
@@ -262,6 +272,31 @@ class PLYEdge(PLY):
         count = 0
         for i in range(len(self.edges)):
             if error[i] < 1.5 * inlier_thresh:
+                new_edges.append(self.edges[i])
+                new_labels.append(self.edge_labels[i])
+                count += 1
+        print("Self computed {} inliers".format(count))
+        self.edges = new_edges
+        self.edge_labels = new_labels
+        self.update_header()
+
+    def assert_basis_directions(self, iterations, inlier_thresh):
+        directions = np.zeros([len(self.edges), 3])
+        for i, e in enumerate(self.edges):
+            directions[i] = e.direction()
+        fitter = wireframe.wireframe_ransac.ManhattanRANSAC(iterations, inlier_thresh, None)
+        if self.v is None:
+            self.v, n_inliers = fitter.ransac(directions)
+            print("Basis directions had {} inliers".format(n_inliers))
+        error = fitter.get_error(directions, self.v)
+        new_edges = []
+        new_labels = []
+        count = 0
+        for i in range(len(self.edges)):
+            if error[i] < 1.5 * inlier_thresh:
+                d = np.argmax(np.abs(np.dot(self.edges[i].direction(), self.v.transpose())))
+                print("for edge {} chose direction {} with dot product {}".format(i, d, np.dot(self.edges[i].direction(), self.v[d])))
+                self.edges[i].update_direction(self.v[d])
                 new_edges.append(self.edges[i])
                 new_labels.append(self.edge_labels[i])
                 count += 1

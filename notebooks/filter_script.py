@@ -101,7 +101,7 @@ def main(args):
     print("Wrote merged_wireframe.ply...")
 
     manhattan = myply.PLYEdge(merged)
-    manhattan.filter_basis_directions(1000, 0.2)
+    manhattan.assert_basis_directions(1000, 0.2)
     manhattan.write(os.path.join(args.project_directory, "manhattan_wireframe.ply"))
     print("Wrote manhattan_wireframe.ply...")
 
