@@ -100,8 +100,10 @@ def main(args):
     merged.write(os.path.join(args.project_directory, "merged_wireframe.ply"))
     print("Wrote merged_wireframe.ply...")
 
+    # Predicts and enforces the manhattan constraint
     manhattan = myply.PLYEdge(merged)
     manhattan.assert_basis_directions(1000, 0.2)
+    basis_directions = manhattan.v
     manhattan.write(os.path.join(args.project_directory, "manhattan_wireframe.ply"))
     print("Wrote manhattan_wireframe.ply...")
 
