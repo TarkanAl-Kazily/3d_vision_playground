@@ -111,6 +111,8 @@ def main(args):
         merged.combine(ply)
 
     merged.write(os.path.join(args.project_directory, "merged_wireframe.ply"))
+    corner = np.array([10, 10, 10])
+    merged.enforce_bounding_box(-corner, corner)
     print("Wrote merged_wireframe.ply...")
 
     # Predicts and enforces the manhattan constraint
@@ -120,7 +122,7 @@ def main(args):
     manhattan.write(os.path.join(args.project_directory, "manhattan_wireframe.ply"))
     print("Wrote manhattan_wireframe.ply...")
 
-    filtered_by_distance = merged.get_nearby_lines(tol=args.tol, min_group=args.min_group)
+    filtered_by_distance = manhattan.get_nearby_lines(tol=args.tol, min_group=args.min_group)
     combined = myply.PLY(None, None, None)
     matches = []
     count = 0
@@ -142,7 +144,7 @@ def main(args):
         print("Showing matches for {}".format(fname))
         e.write(os.path.join(args.project_directory, "wireframe_ply", fname))
         matches.append(Match(e, p.edge_labels))
-        if args.plot:
+        if args.plot1:
             matches[-1].plot_matches(args.project_directory, all_initial_lines)
 
     combined.write(os.path.join(args.project_directory, "wireframe_simplified.ply"))
@@ -161,9 +163,8 @@ def main(args):
             intersecting_linenums = g.get_intersecting_lines(linenum)
             for group in intersecting_linenums:
                 group_matches = []
-                if args.plot:
-                    g.plot_graph(g.g, all_images[imnum], highlight=[linenum])
-                    g.plot_graph(g.g, all_images[imnum], highlight=group)
+                if args.plot2:
+                    g.plot_graph(g.g, all_images[imnum], highlight=group + [linenum])
                 for other_linenum in group:
                     label = (imnum, other_linenum)
                     for other_ei, other_m in enumerate(matches):
@@ -203,7 +204,8 @@ if __name__ == "__main__":
     parser.add_argument('project_directory', type=str, help="directory storing all OpenSfM data")
     parser.add_argument('--tol', type=float, default=0.2, help="Distance tolerance for grouping lines")
     parser.add_argument('--min_group', type=int, default=3, help="Minimum number of distance based matches for inclusion")
-    parser.add_argument('--plot', action='store_true', help="Plot matches")
+    parser.add_argument('--plot1', action='store_true', help="Plot matches")
+    parser.add_argument('--plot2', action='store_true', help="Plot groups")
     parser.add_argument('--device', type=str, default='', help="GPU Devices")
     args = parser.parse_args()
     main(args)

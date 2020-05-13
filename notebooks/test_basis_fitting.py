@@ -20,7 +20,7 @@ def main(args):
 
     dirs = np.random.randint(3, size=args.n)
     directions = np.vstack([rot[i] for i in dirs])
-    rand = np.random.rand(args.n, 3) * args.noise / np.sqrt(3)
+    rand = (np.random.rand(args.n, 3) - np.array([0.5, 0.5, 0.5])) * 2.0 * args.noise / np.sqrt(3)
     directions += rand
     edges = [myply.Edge(origin, myply.Vertex(d[0], d[1], d[2])) for d in directions]
     edge_labels = [(-1, -1) for d in directions]
