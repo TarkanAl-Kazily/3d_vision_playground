@@ -18,7 +18,35 @@ cd tools
 python3 video_converter.py ../video_name.mp4 --outputdir ../data/project/images -n <save_every_n_images>
 ```
 
+Compute the merged point cloud for the set of project images
+
 ```
 cd ../OpenSfM
 bin/opensfm_run_all ../data/project
-``
+```
+
+Compute the 2D wireframe information for our dataset
+
+```
+cd notebooks/
+python3 wireframe_save_records.py ../data/project/
+```
+
+Obtain 3D line information and save as .PLY files in project directory
+
+```
+cd notebooks/
+python3 wireframe_run_ply.py ../data/project
+```
+
+Combine all line information, enforce manhattan constraints and create final model
+
+```
+cd notebooks/
+python3 filter_script.py ../data/project
+```
+
+## Key Files 
+
+
+## Project Structure
