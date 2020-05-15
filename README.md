@@ -46,7 +46,17 @@ cd notebooks/
 python3 filter_script.py ../data/project
 ```
 
-## Key Files 
-
-
 ## Project Structure
+```
+OpenSfM/                        # opensfm source code as a submodule
+notebooks/                      # all source code
+    lcnn/                       # lcnn source code 
+    sfm/                        # utility functions for loading data from opensfm 
+    myply/                      # PLY objects for loading, writing, and helper functions for grouping edges
+    wireframe/                  # 
+    wireframe_save_records.py
+    wireframe_run_ply.py
+    filter_script.py
+    *.ipynb                     # various notebooks for running opensfm, wireframe detection and other modules
+tools/                          # helper scripts for conveting files
+```
