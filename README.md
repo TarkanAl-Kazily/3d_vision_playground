@@ -3,10 +3,10 @@
 ## Dependencies
 
 1. OpenSfM: [https://www.openopensfm.org/docs/]
-    a. `git submodule update --init --recursive # to get OpenSfM source files`
-    b. See https://www.opensfm.org/docs/building.html for installing dependencies
+    1. `git submodule update --init --recursive # to get OpenSfM source files`
+    2. See https://www.opensfm.org/docs/building.html for installing dependencies
 2. LCNN: [https://github.com/zhou13/lcnn] 
-    a. See `notebooks/WireframeDetection.ipynb` for installing dependencies and downloading the pretrained model.
+    1. See `notebooks/WireframeDetection.ipynb` for installing dependencies and downloading the pretrained model.
 
 ## User Guide
 
