@@ -32,19 +32,20 @@ cd notebooks/
 python3 wireframe_save_records.py ../data/project/
 ```
 
-Obtain 3D line information and save as .PLY files in project directory
+Main project entry point - Estimate 3D line line information, enforce manhattan constraints, determine line intersections and create final model
+
+```
+cd notebooks/
+python3 filter_script.py ../data/project
+```
+
+Optional - Obtain just the initial 3D line segments and save as .PLY files in project directory seperately (done as part of main entry point)
 
 ```
 cd notebooks/
 python3 wireframe_run_ply.py ../data/project
 ```
 
-Combine all line information, enforce manhattan constraints and create final model
-
-```
-cd notebooks/
-python3 filter_script.py ../data/project
-```
 
 ## Project Structure
 ```
@@ -52,11 +53,11 @@ OpenSfM/                        # opensfm source code as a submodule
 notebooks/                      # all source code
     lcnn/                       # lcnn source code 
     sfm/                        # utility functions for loading data from opensfm 
-    myply/                      # PLY objects for loading, writing, and helper functions for grouping edges
-    wireframe/                  # 
-    wireframe_save_records.py
-    wireframe_run_ply.py
-    filter_script.py
+    myply/                      # PLY classes for loading, writing, and helper functions for working with edges and point clouds
+    wireframe/                  # python module for interacting with LCNN wireframe detection, and performing model fitting
+    wireframe_save_records.py   # python script for saving detected 2D wireframe features
+    wireframe_run_ply.py        # python script for inferring initial 3D line segments as part of project
+    filter_script.py            # Main project entry point
     *.ipynb                     # various notebooks for running opensfm, wireframe detection and other modules
-tools/                          # helper scripts for conveting files
+tools/                          # helper scripts for converting files
 ```
