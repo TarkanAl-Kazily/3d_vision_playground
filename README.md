@@ -7,6 +7,7 @@
     2. See https://www.opensfm.org/docs/building.html for installing dependencies
 2. LCNN: [https://github.com/zhou13/lcnn] 
     1. See `notebooks/WireframeDetection.ipynb` for installing dependencies and downloading the pretrained model.
+    2. You may need to update your model configuration file location information in wireframe\_run\_ply.py.
 
 ## User Guide
 
@@ -36,7 +37,7 @@ Main project entry point - Estimate 3D line line information, enforce manhattan 
 
 ```
 cd notebooks/
-python3 filter_script.py ../data/project
+python3 main_wireframe_reconstruction.py ../data/project
 ```
 
 Optional - Obtain just the initial 3D line segments and save as .PLY files in project directory seperately (done as part of main entry point)
@@ -49,15 +50,15 @@ python3 wireframe_run_ply.py ../data/project
 
 ## Project Structure
 ```
-OpenSfM/                        # opensfm source code as a submodule
-notebooks/                      # all source code
-    lcnn/                       # lcnn source code 
-    sfm/                        # utility functions for loading data from opensfm 
-    myply/                      # PLY classes for loading, writing, and helper functions for working with edges and point clouds
-    wireframe/                  # python module for interacting with LCNN wireframe detection, and performing model fitting
-    wireframe_save_records.py   # python script for saving detected 2D wireframe features
-    wireframe_run_ply.py        # python script for inferring initial 3D line segments as part of project
-    filter_script.py            # Main project entry point
-    *.ipynb                     # various notebooks for running opensfm, wireframe detection and other modules
-tools/                          # helper scripts for converting files
+OpenSfM/                                        # opensfm source code as a submodule
+notebooks/                                      # all source code
+    lcnn/                                       # lcnn source code 
+    sfm/                                        # utility functions for loading data from opensfm 
+    myply/                                      # PLY classes for loading, writing, and helper functions for working with edges and point clouds
+    wireframe/                                  # python module for interacting with LCNN wireframe detection, and performing model fitting
+    wireframe_save_records.py                   # python script for saving detected 2D wireframe features
+    wireframe_run_ply.py                        # python script for inferring initial 3D line segments as part of project
+    main_wireframe_reconstruction.py            # Main project entry point
+    *.ipynb                                     # various notebooks for running opensfm, wireframe detection and other modules
+tools/                                          # helper scripts for converting files
 ```
